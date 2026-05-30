@@ -4,6 +4,7 @@ import './index.css';
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Header from './Header';
 import Dashboard from './components/Dashboard.jsx';
+import Ticket from './components/Ticket.jsx';
 import About from './components/About.jsx';
 import Error from './Error';
 
@@ -26,6 +27,10 @@ const appRouter = createBrowserRouter([
             {
                 path: "/",
                 element: <Dashboard />
+            },
+            {
+                path: "/tickets",
+                element: <Ticket />
             },
             {
                 path: "/about",

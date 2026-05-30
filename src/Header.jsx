@@ -10,7 +10,8 @@ const Header = () => {
       </div>
       <nav className='m-2'>
         <ul className='flex flex-wrap m-3 p-4 font-semibold text-lg text-slate-600'>
-          <li className='mr-4'><Link to="/">Home</Link></li>
+          <li className='mr-4'><Link to="/">Dashboard</Link></li>
+          <li className='mr-4'><Link to="/tickets">Tickets</Link></li>
           <li className='mr-4'><Link to="/about">About</Link></li>
         </ul>
       </nav>
