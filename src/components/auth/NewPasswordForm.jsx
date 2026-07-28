@@ -30,31 +30,33 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
   const errors = useMemo(() => {
     const validationErrors = {};
 
-    if (formData.newPassword && !passwordChecks.minLength) {
+    const password = formData.newPassword?.trim() || "";
+
+    if (password.length === 0) {
       validationErrors.newPassword = "New password is required.";
-    } else {
-      if (!passwordChecks.minLength)
-        validationErrors.newPassword =
-          "Password must be at least 6 characters.";
-      else if (!passwordChecks.maxLength)
-        validationErrors.newPassword = "Password cannot exceed 20 characters.";
-      else if (!passwordChecks.uppercase)
-        validationErrors.newPassword =
-          "Password must contain at least one uppercase letter.";
-      else if (!passwordChecks.lowercase)
-        validationErrors.newPassword =
-          "Password must contain at least one lowercase letter.";
-      else if (!passwordChecks.number)
-        validationErrors.newPassword =
-          "Password must contain at least one number.";
-      else if (!passwordChecks.special)
-        validationErrors.newPassword =
-          "Password must contain at least one special character.";
+    } else if (password.length < 6) {
+      validationErrors.newPassword = "Password must be at least 6 characters.";
+    } else if (password.length > 20) {
+      validationErrors.newPassword = "Password must not exceed 20 characters.";
+    } else if (!PASSWORD_RULES.uppercase.test(password)) {
+      validationErrors.newPassword =
+        "Password must contain at least one uppercase letter.";
+    } else if (!PASSWORD_RULES.lowercase.test(password)) {
+      validationErrors.newPassword =
+        "Password must contain at least one lowercase letter.";
+    } else if (!PASSWORD_RULES.number.test(password)) {
+      validationErrors.newPassword =
+        "Password must contain at least one number.";
+    } else if (!PASSWORD_RULES.special.test(password)) {
+      validationErrors.newPassword =
+        "Password must contain at least one special character (#, @ or $).";
     }
 
-    if (!formData.confirmPassword) {
+    const confirmPassword = formData.confirmPassword?.trim() || "";
+
+    if (confirmPassword.length === 0) {
       validationErrors.confirmPassword = "Confirm password is required.";
-    } else if (formData.confirmPassword !== formData.newPassword) {
+    } else if (confirmPassword !== password) {
       validationErrors.confirmPassword = "Passwords do not match.";
     }
 
@@ -121,9 +123,13 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
         required
       />
 
-      <Button type="submit" fullWidth loading={loading} 
-      loadingText="Updating..."
-      disabled={!isFormValid}>
+      <Button
+        type="submit"
+        fullWidth
+        loading={loading}
+        loadingText="Updating..."
+        disabled={!isFormValid}
+      >
         Update Password
       </Button>
     </form>

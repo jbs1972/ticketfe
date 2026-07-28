@@ -1,22 +1,32 @@
 import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
-import Toast from "./components/common/Toast";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+} from "react-router-dom";
+
 import "./index.css";
+
+import Toast from "./components/common/Toast";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
 import Header from "./Header";
 import Error from "./Error";
+
 import Dashboard from "./components/Dashboard";
 import Ticket from "./components/Ticket";
+import LoginPage from "./components/auth/LoginPage";
 
 import AuthProvider from "./context/AuthContext";
 
 const AppLayout = () => {
   return (
-    <div>
+    <>
       <Header />
       <Outlet />
-    </div>
+    </>
   );
 };
 
@@ -28,11 +38,27 @@ const appRouter = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: "login",
+        element: <LoginPage />,
+      },
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "tickets",
-        element: <Ticket />,
+        element: (
+          <ProtectedRoute>
+            <Ticket />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

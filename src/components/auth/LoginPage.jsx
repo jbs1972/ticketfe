@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-import Modal from "../common/Modal";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import LoginForm from "./LoginForm";
 import PasswordResetForm from "./PasswordResetForm";
@@ -10,6 +9,7 @@ import NewPasswordForm from "./NewPasswordForm";
 import useAuth from "../../hooks/useAuth";
 
 import { sendOtp, verifyOtp, resetPassword } from "../../services/auth.service";
+
 import { toastError, toastSuccess } from "../../utilities/toast";
 
 import {
@@ -25,11 +25,15 @@ const AUTH_STEPS = {
   NEW_PASSWORD: "newPassword",
 };
 
-const AuthModal = ({ open, onClose }) => {
-  const { loginUser } = useAuth();
+const LoginPage = () => {
+  const navigate = useNavigate();
+
+  const { loginUser, isAuthenticated, loading: authLoading } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(AUTH_STEPS.LOGIN);
+
   const [loading, setLoading] = useState(false);
+
   const [resendLoading, setResendLoading] = useState(false);
 
   const [loginData, setLoginData] = useState({
@@ -49,8 +53,16 @@ const AuthModal = ({ open, onClose }) => {
 
   const [loginError, setLoginError] = useState("");
 
+  if (!authLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleLoginChange = (event) => {
     const { name, value, type, checked } = event.target;
+
+    if (loginError) {
+      setLoginError("");
+    }
 
     setLoginData((prev) => ({
       ...prev,
@@ -74,6 +86,8 @@ const AuthModal = ({ open, onClose }) => {
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
 
+    setLoginError("");
+
     try {
       setLoading(true);
 
@@ -90,17 +104,12 @@ const AuthModal = ({ open, onClose }) => {
 
       toastSuccess("Login successful", "Welcome back!");
 
-      onClose?.();
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       const message =
         error?.response?.data?.message || "Invalid email or password.";
 
       setLoginError(message);
-
-      toastError(
-        "Login failed",
-        error?.response?.data?.message || "Invalid email or password.",
-      );
     } finally {
       setLoading(false);
     }
@@ -140,6 +149,7 @@ const AuthModal = ({ open, onClose }) => {
       });
 
       setVerifiedOtp(otp);
+
       toastSuccess("OTP verified successfully.");
 
       setCurrentStep(AUTH_STEPS.NEW_PASSWORD);
@@ -203,6 +213,8 @@ const AuthModal = ({ open, onClose }) => {
       });
 
       setVerifiedOtp("");
+      setEmail("");
+      setLoginError("");
 
       setCurrentStep(AUTH_STEPS.LOGIN);
     } catch (error) {
@@ -231,61 +243,56 @@ const AuthModal = ({ open, onClose }) => {
     }
   };
 
-  const handleClose = () => {
-    setCurrentStep(AUTH_STEPS.LOGIN);
-
-    setEmail("");
-    setVerifiedOtp("");
-
-    setPasswordData({
-      newPassword: "",
-      confirmPassword: "",
-    });
-
-    onClose?.();
-  };
-
   return (
-    <Modal open={open} onClose={handleClose} title={getTitle()} size="md">
-      {currentStep === AUTH_STEPS.LOGIN && (
-        <LoginForm
-          formData={loginData}
-          loading={loading}
-          error={loginError}
-          onChange={handleLoginChange}
-          onSubmit={handleLoginSubmit}
-          onForgotPassword={() => setCurrentStep(AUTH_STEPS.PASSWORD_RESET)}
-        />
-      )}
+    <main className="flex min-h-[calc(100vh-96px)] items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
+        <h2 className="mb-6 text-center text-3xl font-bold text-gray-900">
+          {getTitle()}
+        </h2>
 
-      {currentStep === AUTH_STEPS.PASSWORD_RESET && (
-        <PasswordResetForm
-          email={email}
-          loading={loading}
-          onChange={handleEmailChange}
-          onSubmit={handlePasswordResetSubmit}
-        />
-      )}
+        {currentStep === AUTH_STEPS.LOGIN && (
+          <LoginForm
+            formData={loginData}
+            loading={loading}
+            error={loginError}
+            onChange={handleLoginChange}
+            onSubmit={handleLoginSubmit}
+            onForgotPassword={() => {
+              setLoginError("");
+              setCurrentStep(AUTH_STEPS.PASSWORD_RESET);
+            }}
+          />
+        )}
 
-      {currentStep === AUTH_STEPS.OTP && (
-        <OTPForm
-          loading={loading}
-          resendLoading={resendLoading}
-          onVerify={handleOTPVerify}
-          onResend={handleResendOTP}
-        />
-      )}
+        {currentStep === AUTH_STEPS.PASSWORD_RESET && (
+          <PasswordResetForm
+            email={email}
+            loading={loading}
+            onChange={handleEmailChange}
+            onSubmit={handlePasswordResetSubmit}
+          />
+        )}
 
-      {currentStep === AUTH_STEPS.NEW_PASSWORD && (
-        <NewPasswordForm
-          formData={passwordData}
-          loading={loading}
-          onChange={handlePasswordChange}
-          onSubmit={handleNewPasswordSubmit}
-        />
-      )}
-    </Modal>
+        {currentStep === AUTH_STEPS.OTP && (
+          <OTPForm
+            loading={loading}
+            resendLoading={resendLoading}
+            onVerify={handleOTPVerify}
+            onResend={handleResendOTP}
+          />
+        )}
+
+        {currentStep === AUTH_STEPS.NEW_PASSWORD && (
+          <NewPasswordForm
+            formData={passwordData}
+            loading={loading}
+            onChange={handlePasswordChange}
+            onSubmit={handleNewPasswordSubmit}
+          />
+        )}
+      </div>
+    </main>
   );
 };
 
-export default AuthModal;
+export default LoginPage;
