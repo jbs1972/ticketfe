@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LockKeyhole, ShieldCheck, CircleCheck, CircleX } from "lucide-react";
 
 import Button from "../common/Button";
@@ -10,22 +10,14 @@ const PASSWORD_RULES = {
   uppercase: /[A-Z]/,
   lowercase: /[a-z]/,
   number: /\d/,
-  special: /[!@#$%^&*(),.?":{}|<>]/,
+  special: /[#@$]/,
 };
 
 const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
-  const passwordChecks = useMemo(() => {
-    const password = formData.newPassword || "";
-
-    return {
-      minLength: password.length >= PASSWORD_RULES.minLength,
-      maxLength: password.length <= PASSWORD_RULES.maxLength,
-      uppercase: PASSWORD_RULES.uppercase.test(password),
-      lowercase: PASSWORD_RULES.lowercase.test(password),
-      number: PASSWORD_RULES.number.test(password),
-      special: PASSWORD_RULES.special.test(password),
-    };
-  }, [formData.newPassword]);
+  const [touched, setTouched] = useState({
+    newPassword: false,
+    confirmPassword: false,
+  });
 
   const errors = useMemo(() => {
     const validationErrors = {};
@@ -34,9 +26,9 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
 
     if (password.length === 0) {
       validationErrors.newPassword = "New password is required.";
-    } else if (password.length < 6) {
+    } else if (password.length < PASSWORD_RULES.minLength) {
       validationErrors.newPassword = "Password must be at least 6 characters.";
-    } else if (password.length > 20) {
+    } else if (password.length > PASSWORD_RULES.maxLength) {
       validationErrors.newPassword = "Password must not exceed 20 characters.";
     } else if (!PASSWORD_RULES.uppercase.test(password)) {
       validationErrors.newPassword =
@@ -61,14 +53,32 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
     }
 
     return validationErrors;
-  }, [formData, passwordChecks]);
+  }, [formData]);
 
   const isFormValid = Object.keys(errors).length === 0;
+
+  const handleInputChange = (event) => {
+    const { name } = event.target;
+
+    setTouched((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+
+    onChange(event);
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!isFormValid) return;
+    setTouched({
+      newPassword: true,
+      confirmPassword: true,
+    });
+
+    if (!isFormValid) {
+      return;
+    }
 
     onSubmit(event);
   };
@@ -86,7 +96,7 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form noValidate onSubmit={handleSubmit} className="space-y-5">
       <div className="text-center">
         <ShieldCheck size={52} className="mx-auto mb-3 text-green-600" />
 
@@ -104,11 +114,10 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
         name="newPassword"
         type="password"
         value={formData.newPassword}
-        onChange={onChange}
+        onChange={handleInputChange}
         leftIcon={<LockKeyhole size={18} />}
         placeholder="Enter new password"
-        error={errors.newPassword}
-        required
+        error={touched.newPassword ? errors.newPassword : ""}
       />
 
       <InputBox
@@ -116,11 +125,10 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
         name="confirmPassword"
         type="password"
         value={formData.confirmPassword}
-        onChange={onChange}
+        onChange={handleInputChange}
         leftIcon={<LockKeyhole size={18} />}
         placeholder="Confirm new password"
-        error={errors.confirmPassword}
-        required
+        error={touched.confirmPassword ? errors.confirmPassword : ""}
       />
 
       <Button
@@ -128,7 +136,6 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
         fullWidth
         loading={loading}
         loadingText="Updating..."
-        disabled={!isFormValid}
       >
         Update Password
       </Button>

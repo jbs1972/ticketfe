@@ -15,9 +15,10 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import Header from "./Header";
 import Error from "./Error";
 
-import Dashboard from "./components/Dashboard";
-import Ticket from "./components/Ticket";
+import Dashboard from "./components/pages/Dashboard";
+import Ticket from "./components/pages/Ticket";
 import LoginPage from "./components/auth/LoginPage";
+import Users from "./components/pages/Users";
 
 import AuthProvider from "./context/AuthContext";
 
@@ -57,6 +58,14 @@ const appRouter = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Ticket />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "users",
+        element: (
+          <ProtectedRoute requiredRole="admin">
+            <Users />
           </ProtectedRoute>
         ),
       },

@@ -124,8 +124,8 @@ const LoginPage = () => {
       await sendOtp(email);
 
       toastSuccess(
-        "OTP sent successfully.",
-        "Please check your email for the OTP.",
+        "OTP Sent",
+        "An OTP has been sent to your email address.",
       );
 
       setCurrentStep(AUTH_STEPS.OTP);
@@ -150,11 +150,14 @@ const LoginPage = () => {
 
       setVerifiedOtp(otp);
 
-      toastSuccess("OTP verified successfully.");
+      toastSuccess("OTP Verified", "Your OTP has been verified successfully.");
 
       setCurrentStep(AUTH_STEPS.NEW_PASSWORD);
     } catch (error) {
-      toastError(error?.response?.data?.message || "OTP verification failed.");
+      toastError(
+        "OTP Verification Failed",
+        error?.response?.data?.message || "The OTP entered is invalid or has expired.",
+      );
     } finally {
       setLoading(false);
     }
@@ -167,15 +170,15 @@ const LoginPage = () => {
       await sendOtp(email);
 
       toastSuccess(
-        "OTP sent successfully.",
-        "Please check your email for the OTP.",
+        "OTP Resent",
+        "A new OTP has been sent to your email address.",
       );
 
       return true;
     } catch (error) {
       toastError(
-        "Failed to send OTP",
-        error?.response?.data?.message || "Failed to resend OTP.",
+        "OTP Resend Failed",
+        error?.response?.data?.message || "A new OTP could not be sent. Please try again.",
       );
 
       return false;
@@ -197,7 +200,7 @@ const LoginPage = () => {
       });
 
       toastSuccess(
-        "Password Updated.",
+        "Password Updated",
         "Please log in with your new password.",
       );
 
@@ -218,7 +221,10 @@ const LoginPage = () => {
 
       setCurrentStep(AUTH_STEPS.LOGIN);
     } catch (error) {
-      toastError(error?.response?.data?.message || "Password reset failed.");
+      toastError(
+        "Password Reset Failed",
+        error?.response?.data?.message || "Could not reset your password. Please try again.",
+      );
     } finally {
       setLoading(false);
     }

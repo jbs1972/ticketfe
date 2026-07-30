@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { User, UserPlus, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 
 const UserDropdown = ({
   username = "Admin",
   role = "Administrator",
   isAdmin = false,
   onProfile,
-  onAddUser,
   onLogout,
 }) => {
   const [open, setOpen] = useState(false);
@@ -43,11 +42,6 @@ const UserDropdown = ({
   const handleProfileClick = () => {
     setOpen(false);
     onProfile?.();
-  };
-
-  const handleAddUserClick = () => {
-    setOpen(false);
-    onAddUser?.();
   };
 
   const handleLogoutClick = () => {
@@ -123,28 +117,6 @@ const UserDropdown = ({
               <User size={18} />
               <span>My Profile</span>
             </button>
-
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={handleAddUserClick}
-                className="
-                  flex
-                  w-full
-                  items-center
-                  gap-3
-                  px-4
-                  py-2.5
-                  text-sm
-                  text-gray-700
-                  transition-colors
-                  hover:bg-gray-100
-                "
-              >
-                <UserPlus size={18} />
-                <span>Add User</span>
-              </button>
-            )}
           </div>
 
           <div className="py-1">

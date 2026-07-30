@@ -5,7 +5,6 @@ import { APP_LOGO_URL } from "./utilities/constants";
 
 import UserDropdown from "./components/layout/UserDropdown";
 import ProfileModal from "./components/layout/ProfileModal";
-import AddUserModal from "./components/layout/AddUserModal";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 
 import useAuth from "./hooks/useAuth";
@@ -21,7 +20,6 @@ const Header = () => {
 
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
 
@@ -88,6 +86,20 @@ const Header = () => {
                     )}
                   </NavLink>
 
+                  {user?.isAdmin && (
+                    <NavLink to="/users" className={navClass}>
+                      {({ isActive }) => (
+                        <span
+                          className={`border-b-2 pb-1 ${
+                            isActive ? "border-blue-600" : "border-transparent"
+                          }`}
+                        >
+                          Users
+                        </span>
+                      )}
+                    </NavLink>
+                  )}
+
                   <NavLink to="/tickets" className={navClass}>
                     {({ isActive }) => (
                       <span
@@ -106,7 +118,6 @@ const Header = () => {
                   role={user?.isAdmin ? "Administrator" : "User"}
                   isAdmin={user?.isAdmin}
                   onProfile={() => setIsProfileOpen(true)}
-                  onAddUser={() => setIsAddUserOpen(true)}
                   onLogout={handleLogout}
                 />
               </>
@@ -118,11 +129,6 @@ const Header = () => {
       <ProfileModal
         open={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-      />
-
-      <AddUserModal
-        open={isAddUserOpen}
-        onClose={() => setIsAddUserOpen(false)}
       />
 
       <ConfirmDialog

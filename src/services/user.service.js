@@ -9,3 +9,13 @@ export const createUser = async (userData, token) => {
 
   return data;
 };
+
+export const getUsers = async (token) => {
+  const { data } = await api.get("/users", {
+    headers: {
+      "x-auth-token": token,
+    },
+  });
+
+  return data;
+};
