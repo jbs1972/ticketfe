@@ -4,6 +4,7 @@ import Modal from "../common/Modal";
 import Button from "../common/Button";
 
 import useAuth from "../../hooks/useAuth";
+import { ROLE_LABELS, ROLE_COLORS } from "../../utilities/constants";
 
 const ProfileModal = ({ open, onClose }) => {
   const { user } = useAuth();
@@ -17,15 +18,7 @@ const ProfileModal = ({ open, onClose }) => {
     .substring(0, 2)
     .toUpperCase();
 
-  const isAdmin = user.isAdmin;
-
-  const bannerGradient = isAdmin
-    ? "bg-gradient-to-r from-purple-700 to-fuchsia-600"
-    : "bg-gradient-to-r from-blue-600 to-cyan-500";
-
-  const avatarColor = isAdmin ? "bg-purple-600" : "bg-blue-600";
-
-  const roleColor = isAdmin ? "text-purple-600" : "text-blue-600";
+  const colors = ROLE_COLORS[user.role] || ROLE_COLORS.user;
 
   return (
     <Modal
@@ -40,10 +33,10 @@ const ProfileModal = ({ open, onClose }) => {
       <div className="overflow-hidden rounded-t-2xl">
         {/* Banner */}
         <div
-          className={`flex h-28 items-center justify-center ${bannerGradient}`}
+          className={`flex h-28 items-center justify-center ${colors.banner}`}
         >
           <div
-            className={`mt-14 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white text-3xl font-bold text-white ${avatarColor}`}
+            className={`mt-14 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white text-3xl font-bold text-white ${colors.avatar}`}
           >
             {initials}
           </div>
@@ -73,8 +66,8 @@ const ProfileModal = ({ open, onClose }) => {
               <div>
                 <p className="text-xs text-gray-500">Role</p>
 
-                <p className={`font-medium ${roleColor}`}>
-                  {isAdmin ? "Administrator" : "Member"}
+                <p className={`font-medium ${colors.text}`}>
+                  {ROLE_LABELS[user.role] || "Member"}
                 </p>
               </div>
             </div>

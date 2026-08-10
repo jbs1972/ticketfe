@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { User, LogOut } from "lucide-react";
 
+import { ROLE_COLORS } from "../../utilities/constants";
+
 const UserDropdown = ({
   username = "Admin",
-  role = "Administrator",
-  isAdmin = false,
+  roleLabel = "Member",
+  role = "user",
   onProfile,
   onLogout,
 }) => {
@@ -21,9 +23,7 @@ const UserDropdown = ({
       .join("");
   };
 
-  const avatarColor = isAdmin
-    ? "bg-violet-600 hover:bg-violet-700"
-    : "bg-blue-600 hover:bg-blue-700";
+  const avatarColor = (ROLE_COLORS[role] || ROLE_COLORS.user).avatar;
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -94,7 +94,7 @@ const UserDropdown = ({
               {username}
             </h3>
 
-            <p className="text-xs text-gray-500">{role}</p>
+            <p className="text-xs text-gray-500">{roleLabel}</p>
           </div>
 
           <div className="py-1">

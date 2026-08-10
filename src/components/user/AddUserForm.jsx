@@ -7,12 +7,14 @@ import Button from "../common/Button";
 import { createUser } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
 import { toastError, toastSuccess } from "../../utilities/toast";
+import useAuth from "../../hooks/useAuth";
+import { ROLE_LABELS } from "../../utilities/constants";
 
 const initialForm = {
   name: "",
   email: "",
   password: "",
-  isAdmin: "false",
+  role: "user",
 };
 
 const initialErrors = {
@@ -31,9 +33,14 @@ const PASSWORD_RULES = {
 };
 
 const AddUserForm = ({ onSuccess, onCancel }) => {
+  const { user: currentUser } = useAuth();
+
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
+
+  // Any Admin can assign Admin role
+  const canAssignAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     setForm(initialForm);
@@ -194,8 +201,8 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         <label className="block text-sm font-medium text-gray-700">Role</label>
 
         <select
-          name="isAdmin"
-          value={form.isAdmin}
+          name="role"
+          value={form.role}
           onChange={handleChange}
           className="
             w-full
@@ -212,8 +219,8 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
             focus:ring-blue-200
           "
         >
-          <option value="false">User</option>
-          <option value="true">Administrator</option>
+          <option value="user">{ROLE_LABELS.user}</option>
+          {canAssignAdmin && <option value="admin">{ROLE_LABELS.admin}</option>}
         </select>
       </div>
 

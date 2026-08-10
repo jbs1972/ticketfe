@@ -22,10 +22,18 @@ import Users from "./components/pages/Users";
 
 import AuthProvider from "./context/AuthContext";
 
+import Breadcrumb from "./components/common/Breadcrumb";
+import TicketDetail from "./components/pages/TicketDetail";
+
+import BackendGate from "./components/common/BackendGate";
+import EnvBadge from "./components/common/EnvBadge";
+import Configure from "./components/pages/Configure";
+
 const AppLayout = () => {
   return (
     <>
       <Header />
+      <Breadcrumb />
       <Outlet />
     </>
   );
@@ -62,10 +70,26 @@ const appRouter = createBrowserRouter([
         ),
       },
       {
+        path: "tickets/:ticketCode",
+        element: (
+          <ProtectedRoute>
+            <TicketDetail />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: "users",
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute allowedRoles={["admin"]}>
             <Users />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "configure",
+        element: (
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Configure />
           </ProtectedRoute>
         ),
       },
@@ -75,9 +99,11 @@ const appRouter = createBrowserRouter([
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthProvider>
-      <RouterProvider router={appRouter} />
-      <Toast />
-    </AuthProvider>
+    <BackendGate>
+      <AuthProvider>
+        <RouterProvider router={appRouter} />
+        <Toast />
+      </AuthProvider>
+    </BackendGate>
   </StrictMode>,
 );

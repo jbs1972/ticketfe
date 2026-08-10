@@ -1,3 +1,4 @@
+import { ROLE_LABELS } from "./utilities/constants";
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
@@ -9,6 +10,7 @@ import ConfirmDialog from "./components/common/ConfirmDialog";
 
 import useAuth from "./hooks/useAuth";
 import { toastSuccess } from "./utilities/toast";
+import EnvBadge from "./components/common/EnvBadge";
 
 const PUBLIC_ROUTES = ["/login"];
 
@@ -44,7 +46,7 @@ const Header = () => {
 
   return (
     <>
-      <header className="mx-3 mt-3 rounded-xl bg-gray-100 px-8 py-3">
+      <header className="sticky top-3 z-40 mx-3 mt-3 rounded-xl bg-gray-100 px-8 py-3">
         {isPublicRoute ? (
           <div className="flex items-center justify-between">
             <img
@@ -53,9 +55,12 @@ const Header = () => {
               className="h-12 w-12 rounded-full"
             />
 
-            <h1 className="text-3xl font-serif font-bold text-black">
-              TaskFlow
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-serif font-bold text-black">
+                TaskFlow
+              </h1>
+              <EnvBadge />
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between">
@@ -66,9 +71,12 @@ const Header = () => {
                 className="h-12 w-12 rounded-full"
               />
 
-              <h1 className="text-2xl font-serif font-bold text-black">
-                TaskFlow
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-serif font-bold text-black">
+                  TaskFlow
+                </h1>
+                <EnvBadge />
+              </div>
             </div>
 
             {isAuthenticated && (
@@ -86,7 +94,7 @@ const Header = () => {
                     )}
                   </NavLink>
 
-                  {user?.isAdmin && (
+                  {user?.role === "admin" && (
                     <NavLink to="/users" className={navClass}>
                       {({ isActive }) => (
                         <span
@@ -95,6 +103,20 @@ const Header = () => {
                           }`}
                         >
                           Users
+                        </span>
+                      )}
+                    </NavLink>
+                  )}
+
+                  {user?.role === "admin" && (
+                    <NavLink to="/configure" className={navClass}>
+                      {({ isActive }) => (
+                        <span
+                          className={`border-b-2 pb-1 ${
+                            isActive ? "border-blue-600" : "border-transparent"
+                          }`}
+                        >
+                          Configure
                         </span>
                       )}
                     </NavLink>
@@ -115,8 +137,8 @@ const Header = () => {
 
                 <UserDropdown
                   username={user?.name}
-                  role={user?.isAdmin ? "Administrator" : "User"}
-                  isAdmin={user?.isAdmin}
+                  roleLabel={ROLE_LABELS[user?.role] || "Member"}
+                  role={user?.role}
                   onProfile={() => setIsProfileOpen(true)}
                   onLogout={handleLogout}
                 />

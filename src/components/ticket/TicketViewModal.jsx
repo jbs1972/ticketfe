@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { FaDownload, FaEye, FaSyncAlt } from "react-icons/fa";
 
+import { useNavigate } from "react-router-dom";
+import useEscapeKey from "../../hooks/useEscapeKey";
+
 const formatFileSize = (size) => {
   if (size < 1024) return `${size} B`;
 
@@ -28,6 +31,9 @@ const TicketViewModal = ({
   useEffect(() => {
     setSelectedFileNames([]);
   }, [ticket, open]);
+
+  const navigate = useNavigate();
+  useEscapeKey(open, onClose);
 
   if (!open || !ticket) return null;
 
@@ -176,6 +182,16 @@ const TicketViewModal = ({
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={() => {
+              onClose();
+              navigate(`/tickets/${ticket.ticketCode}`);
+            }}
+            className="rounded-md border px-5 py-2 hover:bg-gray-100"
+          >
+            View Full Page
+          </button>
+
           {canEdit && (
             <button
               onClick={() => {

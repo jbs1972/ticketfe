@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, useRef } from "react";
+import { createContext, useEffect, useState } from "react";
 import {
   login,
   getProfile,
@@ -6,13 +6,14 @@ import {
 } from "../services/auth.service";
 import { saveToken, getToken, removeToken } from "../utilities/tokenStorage";
 import { toastWarning } from "../utilities/toast";
+import socket from "../services/socket";
 
 export const AuthContext = createContext(null);
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const sessionExpiredShown = useRef(false);
+  const [inactiveAccount, setInactiveAccount] = useState(false);
 
   const initializeUser = async () => {
     const token = getToken();
@@ -26,17 +27,7 @@ export default function AuthProvider({ children }) {
       const response = await getProfile(token);
       setUser(response.data);
     } catch (error) {
-      removeToken();
       setUser(null);
-
-      if (error?.response?.status === 401 && !sessionExpiredShown.current) {
-        sessionExpiredShown.current = true;
-
-        toastWarning(
-          "Session Expired",
-          error?.response?.data?.message || "Please login again.",
-        );
-      }
     } finally {
       setLoading(false);
     }
@@ -60,8 +51,6 @@ export default function AuthProvider({ children }) {
 
       setUser(profile.data);
 
-      sessionExpiredShown.current = false;
-
       return profile.data;
     } finally {
       setLoading(false);
@@ -83,6 +72,34 @@ export default function AuthProvider({ children }) {
     }
   };
 
+  const clearInactiveAccount = () => {
+    setInactiveAccount(false);
+  };
+
+  useEffect(() => {
+    const handleForceLogout = () => {
+      logoutUser();
+      setInactiveAccount(true);
+    };
+
+    const handleRoleChanged = () => {
+      logoutUser();
+
+      toastWarning(
+        "Role Updated",
+        "Your role has been updated. Please log in again.",
+      );
+    };
+
+    socket.on("account:deactivated", handleForceLogout);
+    socket.on("account:roleChanged", handleRoleChanged);
+
+    return () => {
+      socket.off("account:deactivated", handleForceLogout);
+      socket.off("account:roleChanged", handleRoleChanged);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +109,8 @@ export default function AuthProvider({ children }) {
         logoutUser,
         initializeUser,
         isAuthenticated: !!user,
+        inactiveAccount,
+        clearInactiveAccount,
       }}
     >
       {children}

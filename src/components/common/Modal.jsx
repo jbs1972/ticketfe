@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import useEscapeKey from "../../hooks/useEscapeKey";
 
 const sizeClasses = {
   sm: "max-w-sm",
@@ -18,10 +19,7 @@ const Modal = ({
   showCloseButton = true,
   bodyClassName = "px-6 py-5",
 }) => {
-  useEffect(() => {
-    // Outside click and Escape are globally disabled.
-    return undefined;
-  }, []);
+  useEscapeKey(open, onClose);
 
   if (!open) return null;
 

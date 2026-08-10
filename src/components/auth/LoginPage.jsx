@@ -11,6 +11,7 @@ import useAuth from "../../hooks/useAuth";
 import { sendOtp, verifyOtp, resetPassword } from "../../services/auth.service";
 
 import { toastError, toastSuccess } from "../../utilities/toast";
+import { getErrorMessage, formatFileSize } from "../../utilities/ticketHelpers";
 
 import {
   saveRememberedEmail,
@@ -28,7 +29,13 @@ const AUTH_STEPS = {
 const LoginPage = () => {
   const navigate = useNavigate();
 
-  const { loginUser, isAuthenticated, loading: authLoading } = useAuth();
+  const {
+    loginUser,
+    isAuthenticated,
+    loading: authLoading,
+    inactiveAccount,
+    clearInactiveAccount,
+  } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(AUTH_STEPS.LOGIN);
 
@@ -96,20 +103,25 @@ const LoginPage = () => {
         password: loginData.password,
       });
 
+      clearInactiveAccount();
+
       if (loginData.rememberMe) {
         saveRememberedEmail(loginData.email);
       } else {
         removeRememberedEmail();
       }
 
-      toastSuccess("Login successful", "Welcome back!");
-
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      const message =
-        error?.response?.data?.message || "Invalid email or password.";
-
-      setLoginError(message);
+      if (!error.response) {
+        setLoginError(
+          "We're having trouble reaching the server. Please try again shortly.",
+        );
+      } else {
+        setLoginError(
+          error?.response?.data?.message || "Invalid email or password.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -123,10 +135,7 @@ const LoginPage = () => {
 
       await sendOtp(email);
 
-      toastSuccess(
-        "OTP Sent",
-        "An OTP has been sent to your email address.",
-      );
+      toastSuccess("OTP Sent", "An OTP has been sent to your email address.");
 
       setCurrentStep(AUTH_STEPS.OTP);
     } catch (error) {
@@ -156,7 +165,8 @@ const LoginPage = () => {
     } catch (error) {
       toastError(
         "OTP Verification Failed",
-        error?.response?.data?.message || "The OTP entered is invalid or has expired.",
+        error?.response?.data?.message ||
+          "The OTP entered is invalid or has expired.",
       );
     } finally {
       setLoading(false);
@@ -178,7 +188,8 @@ const LoginPage = () => {
     } catch (error) {
       toastError(
         "OTP Resend Failed",
-        error?.response?.data?.message || "A new OTP could not be sent. Please try again.",
+        error?.response?.data?.message ||
+          "A new OTP could not be sent. Please try again.",
       );
 
       return false;
@@ -199,10 +210,7 @@ const LoginPage = () => {
         newPassword: passwordData.newPassword,
       });
 
-      toastSuccess(
-        "Password Updated",
-        "Please log in with your new password.",
-      );
+      toastSuccess("Password Updated", "Please log in with your new password.");
 
       setPasswordData({
         newPassword: "",
@@ -223,7 +231,8 @@ const LoginPage = () => {
     } catch (error) {
       toastError(
         "Password Reset Failed",
-        error?.response?.data?.message || "Could not reset your password. Please try again.",
+        error?.response?.data?.message ||
+          "Could not reset your password. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -261,10 +270,13 @@ const LoginPage = () => {
             formData={loginData}
             loading={loading}
             error={loginError}
+            inactiveAccount={inactiveAccount}
             onChange={handleLoginChange}
             onSubmit={handleLoginSubmit}
+            onDismissInactive={clearInactiveAccount}
             onForgotPassword={() => {
               setLoginError("");
+              clearInactiveAccount();
               setCurrentStep(AUTH_STEPS.PASSWORD_RESET);
             }}
           />

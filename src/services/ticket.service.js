@@ -91,3 +91,13 @@ export const deleteAttachment = async (ticketId, fileName) => {
 
   return data;
 };
+
+export const setTicketStatus = async (ticketCode, status) => {
+  const { data } = await api.patch(
+    `/tickets/${ticketCode}/status`,
+    { status },
+    getHeaders(),
+  );
+
+  return data;
+};

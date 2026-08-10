@@ -1,4 +1,12 @@
-import { User, Lock, LogIn, KeyRound, XCircle } from "lucide-react";
+import {
+  User,
+  Lock,
+  LogIn,
+  KeyRound,
+  XCircle,
+  AlertTriangle,
+  X,
+} from "lucide-react";
 
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
@@ -7,12 +15,41 @@ const LoginForm = ({
   formData,
   loading,
   error,
+  inactiveAccount,
   onChange,
   onSubmit,
   onForgotPassword,
+  onDismissInactive,
 }) => {
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
+      {inactiveAccount && (
+        <div className="relative flex items-start gap-3 rounded-lg border-l-4 border-yellow-400 bg-yellow-50 px-4 py-3">
+          <AlertTriangle
+            size={20}
+            className="mt-0.5 flex-shrink-0 text-yellow-500"
+          />
+
+          <div className="pr-5">
+            <p className="text-sm font-semibold text-gray-800">
+              Account Deactivated
+            </p>
+            <p className="text-sm text-gray-600">
+              Your account has been frozen. Please contact your administrator
+              for assistance.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onDismissInactive}
+            className="absolute right-2 top-2 text-gray-400 transition hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <InputBox
         label="Email"
         name="email"

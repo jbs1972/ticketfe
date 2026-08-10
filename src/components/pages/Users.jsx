@@ -1,16 +1,28 @@
 import { useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaPen } from "react-icons/fa";
 
-import { getUsers } from "../../services/user.service";
+import { getUsers, deleteUser } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
+import { toastSuccess, toastError } from "../../utilities/toast";
+import useAuth from "../../hooks/useAuth";
+import { ROLE_LABELS, ROLE_COLORS } from "../../utilities/constants";
 
 import AddUserModal from "../layout/AddUserModal";
+import EditUserModal from "../user/EditUserModal";
 import Pagination from "../common/Pagination";
+import ConfirmDialog from "../common/ConfirmDialog";
+import Table from "../common/Table";
 
 const Users = () => {
+  const { user: currentUser } = useAuth();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openAddUser, setOpenAddUser] = useState(false);
+
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,7 +35,10 @@ const Users = () => {
 
       setUsers(response.data || []);
     } catch (error) {
-      alert(error?.response?.data?.message || "Failed to load users");
+      toastError(
+        "Load Failed",
+        error?.response?.data?.message || "Failed to load users",
+      );
     } finally {
       setLoading(false);
     }
@@ -33,12 +48,116 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(users.length / ITEMS_PER_PAGE));
+  // Cannot alter self
+  const canAlter = (target) => {
+    if (!currentUser) return false;
+    if (target._id === currentUser._id) return false;
+    return true;
+  };
+
+  const handleUserSaved = (userId, updates) => {
+    setUsers((prev) =>
+      prev.map((u) => (u._id === userId ? { ...u, ...updates } : u)),
+    );
+  };
+
+  const handleDeleteRequest = (user) => {
+    setEditTarget(null);
+    setDeleteTarget(user);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setDeleteLoading(true);
+
+      await deleteUser(deleteTarget._id, getToken());
+
+      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
+
+      toastSuccess("User Deleted", `${deleteTarget.name} has been deleted.`);
+
+      setDeleteTarget(null);
+    } catch (error) {
+      toastError(
+        "Delete Failed",
+        error?.response?.data?.message || "Failed to delete user",
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const currentUsers = users.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
+
+  const columns = [
+    {
+      key: "slNo",
+      header: "Sl No.",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      width: "w-20",
+      render: (_, index) => (currentPage - 1) * ITEMS_PER_PAGE + index + 1,
+    },
+    { key: "name", header: "Name" },
+    { key: "email", header: "Email" },
+    {
+      key: "role",
+      header: "Role",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (user) => (
+        <span
+          className={`text-xs font-medium ${
+            (ROLE_COLORS[user.role] || ROLE_COLORS.user).text
+          }`}
+        >
+          {ROLE_LABELS[user.role] || user.role}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (user) => (
+        <span
+          className={`text-xs font-medium ${
+            user.isActive ? "text-green-700" : "text-red-700"
+          }`}
+        >
+          {user.isActive ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+    {
+      key: "action",
+      header: "Action",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (user) => {
+        const editable = canAlter(user);
+
+        return (
+          <button
+            onClick={() => setEditTarget(user)}
+            disabled={!editable}
+            title={editable ? "Edit" : "Not permitted"}
+            className={
+              editable
+                ? "rounded-md p-2 text-slate-600 hover:bg-slate-200"
+                : "cursor-not-allowed rounded-md p-2 text-slate-300"
+            }
+          >
+            <FaPen size={12} />
+          </button>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="p-4">
@@ -56,52 +175,12 @@ const Users = () => {
         </button>
       </div>
 
-      <div className="rounded-lg border bg-white shadow">
-        <div className="max-h-[500px] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-100">
-              <tr>
-                <th className="border px-3 py-2 text-center w-20">Sl No.</th>
-                <th className="border px-3 py-2 text-left">Name</th>
-                <th className="border px-3 py-2 text-left">Email</th>
-                <th className="border px-3 py-2 text-left">Role</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="py-5 text-center">
-                    Loading...
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-5 text-center">
-                    No users found
-                  </td>
-                </tr>
-              ) : (
-                currentUsers.map((user, index) => (
-                  <tr key={user._id} className="hover:bg-slate-50">
-                    <td className="border px-3 py-2 text-center">
-                      {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                    </td>
-
-                    <td className="border px-3 py-2">{user.name}</td>
-
-                    <td className="border px-3 py-2">{user.email}</td>
-
-                    <td className="border px-3 py-2">
-                      {user.isAdmin ? "Administrator" : "User"}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Table
+        columns={columns}
+        data={currentUsers}
+        loading={loading}
+        emptyMessage="No users found"
+      />
 
       <Pagination
         currentPage={currentPage}
@@ -116,6 +195,31 @@ const Users = () => {
           setOpenAddUser(false);
           fetchUsers();
         }}
+      />
+
+      <EditUserModal
+        open={!!editTarget}
+        user={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={handleUserSaved}
+        onDeleteRequest={handleDeleteRequest}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete User"
+        message={
+          deleteTarget
+            ? `Are you sure you want to permanently delete ${deleteTarget.name}? This action cannot be undone.`
+            : ""
+        }
+        type="delete"
+        confirmText="Delete"
+        confirmVariant="danger"
+        requireDeleteConfirmation
+        loading={deleteLoading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );
