@@ -99,9 +99,10 @@ const TicketFormModal = ({
       return;
     }
 
-    const payload = isAdmin
-      ? formData
-      : { subject: formData.subject, description: formData.description };
+    const payload =
+      isAdmin && editMode
+        ? formData
+        : { subject: formData.subject, description: formData.description };
 
     const success = editMode
       ? await updateTicket(
