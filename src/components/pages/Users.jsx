@@ -12,15 +12,7 @@ import EditUserModal from "../user/EditUserModal";
 import Pagination from "../common/Pagination";
 import ConfirmDialog from "../common/ConfirmDialog";
 import Table from "../common/Table";
-
-const formatDate = (date) => {
-  if (!date) return "-";
-  return new Date(date).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
+import { formatDate } from "../../utilities/ticketHelpers";
 
 const Users = () => {
   const { user: currentUser } = useAuth();

@@ -231,6 +231,8 @@ const Ticket = () => {
             initialAttachments={
               editingTicket ? editingTicket.attachments || [] : []
             }
+            initialStatus={editingTicket ? editingTicket.status : ""}
+            statuses={statuses}
             hasPendingUpdate={pendingUpdateIds.includes(currentTicketId)}
             refreshing={refreshing}
             refreshTicketDetails={refreshTicketDetails}

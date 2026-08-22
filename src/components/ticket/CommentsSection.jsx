@@ -5,6 +5,7 @@ import {
   getErrorMessage,
   isEmptyRichText,
   isRichTextHtml,
+  formatDateTime,
 } from "../../utilities/ticketHelpers";
 import socket from "../../services/socket";
 import useAuth from "../../hooks/useAuth";
@@ -267,7 +268,7 @@ const CommentsSection = ({ ticketCode }) => {
                     {comment.authorName}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {new Date(comment.createdAt).toLocaleString()}
+                    {formatDateTime(comment.createdAt)}
                   </span>
                 </div>
 

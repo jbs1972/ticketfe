@@ -12,7 +12,6 @@ import {
 import { toastSuccess, toastError } from "../../utilities/toast";
 import { getErrorMessage } from "../../utilities/ticketHelpers";
 
-// Add new tabs here as more configuration features are introduced
 const TABS = [{ key: "statuses", label: "Ticket Statuses" }];
 
 const Configure = () => {
@@ -144,8 +143,12 @@ const Configure = () => {
       headerClassName: "text-center",
       cellClassName: "text-center",
       width: "w-28",
-      render: (row) =>
-        editingId === row._id ? (
+      render: (row) => {
+        if (row.isDefault) {
+          return <span className="text-xs text-gray-400">Locked</span>;
+        }
+
+        return editingId === row._id ? (
           <div className="flex justify-center gap-3">
             <button
               type="button"
@@ -172,7 +175,8 @@ const Configure = () => {
           >
             <FaEdit size={12} />
           </button>
-        ),
+        );
+      },
     },
     {
       key: "delete",
@@ -180,16 +184,17 @@ const Configure = () => {
       headerClassName: "text-center",
       cellClassName: "text-center",
       width: "w-24",
-      render: (row) => (
-        <button
-          type="button"
-          onClick={() => handleDelete(row)}
-          className="text-red-600 hover:text-red-800"
-          title="Delete"
-        >
-          <FaTrash size={12} />
-        </button>
-      ),
+      render: (row) =>
+        row.isDefault ? null : (
+          <button
+            type="button"
+            onClick={() => handleDelete(row)}
+            className="text-red-600 hover:text-red-800"
+            title="Delete"
+          >
+            <FaTrash size={12} />
+          </button>
+        ),
     },
   ];
 

@@ -31,6 +31,7 @@ import {
   formatFileSize,
   isEmptyRichText,
   isRichTextHtml,
+  formatDateTime,
 } from "../../utilities/ticketHelpers";
 
 const TicketDetail = () => {
@@ -415,7 +416,7 @@ const TicketDetail = () => {
               </label>
 
               <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                {new Date(ticket.createdAt).toLocaleString()}
+                {formatDateTime(ticket.createdAt)}
               </div>
             </div>
 

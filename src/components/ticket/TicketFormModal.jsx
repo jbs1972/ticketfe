@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { FaSyncAlt } from "react-icons/fa";
 import { toastError } from "../../utilities/toast";
 import { getErrorMessage, formatFileSize } from "../../utilities/ticketHelpers";
@@ -17,6 +17,8 @@ const TicketFormModal = ({
   initialSubject,
   initialDescription,
   initialAttachments,
+  initialStatus,
+  statuses,
   hasPendingUpdate,
   refreshing,
   refreshTicketDetails,
@@ -31,6 +33,7 @@ const TicketFormModal = ({
   const [formData, setFormData] = useState({
     subject: initialSubject,
     description: initialDescription,
+    status: initialStatus || "",
   });
 
   const [errors, setErrors] = useState({});
@@ -71,6 +74,7 @@ const TicketFormModal = ({
       setFormData({
         subject: updated.subject,
         description: updated.description,
+        status: updated.status,
       });
 
       setCurrentAttachments(updated.attachments || []);
@@ -95,15 +99,19 @@ const TicketFormModal = ({
       return;
     }
 
+    const payload = isAdmin
+      ? formData
+      : { subject: formData.subject, description: formData.description };
+
     const success = editMode
       ? await updateTicket(
           ticketCode,
-          formData,
+          payload,
           selectedFiles,
           attachmentsToDelete,
           isAdmin,
         )
-      : await createTicket(formData, selectedFiles);
+      : await createTicket(payload, selectedFiles);
 
     if (success) {
       onClose();
@@ -159,111 +167,140 @@ const TicketFormModal = ({
     resetFiles,
   } = useFileDropzone();
 
+  const currentStatusColor = statuses?.find(
+    (s) => s.name === formData.status,
+  )?.color;
+
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="w-[500px] rounded-lg bg-white p-5 shadow-lg">
-          <h3 className="mb-4 text-lg font-semibold">
-            {editMode ? "Update Ticket" : "Create Ticket"}
-          </h3>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="flex max-h-[90vh] w-[500px] flex-col rounded-lg bg-white shadow-lg">
+          <div className="flex-1 overflow-y-auto p-5">
+            <h3 className="mb-4 text-lg font-semibold">
+              {editMode ? "Update Ticket" : "Create Ticket"}
+            </h3>
 
-          {editMode && hasPendingUpdate && (
-            <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-              <span>This ticket may have new updates.</span>
+            {editMode && hasPendingUpdate && (
+              <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                <span>This ticket may have new updates.</span>
 
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-1 rounded-md border border-blue-300 bg-white px-2 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-60"
-              >
-                <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm">Subject</label>
-
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                readOnly={!isAdmin && editMode}
-                className={`w-full rounded-md border px-3 py-2 read-only:cursor-not-allowed read-only:bg-gray-100 ${
-                  errors.subject ? "border-red-500" : ""
-                }`}
-              />
-
-              {errors.subject && (
-                <p className="mt-1 text-sm text-red-600">{errors.subject}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm">Description</label>
-
-              <RichTextEditor
-                value={formData.description}
-                onChange={(html) => {
-                  setFormData((prev) => ({ ...prev, description: html }));
-                  setErrors((prev) => ({ ...prev, description: "" }));
-                }}
-                rows={4}
-              />
-
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.description}
-                </p>
-              )}
-            </div>
-
-            {editMode && (
-              <AttachmentsList
-                attachments={currentAttachments}
-                selectedForDownload={selectedForDownload}
-                isAdmin={isAdmin}
-                onToggleSelect={toggleSelectForDownload}
-                onSelectAll={(checked) =>
-                  setSelectedForDownload(
-                    checked
-                      ? currentAttachments.map((file) => file.fileName)
-                      : [],
-                  )
-                }
-                onView={(file) => onViewAttachment(ticketCode, file)}
-                onDownload={(file) => onDownloadAttachment(ticketCode, file)}
-                onDownloadSelected={() =>
-                  onDownloadMultiple(
-                    ticketCode,
-                    currentAttachments.filter((file) =>
-                      selectedForDownload.includes(file.fileName),
-                    ),
-                  )
-                }
-                onDelete={requestDeleteAttachment}
-              />
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-1 rounded-md border border-blue-300 bg-white px-2 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+                >
+                  <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+                  {refreshing ? "Refreshing..." : "Refresh"}
+                </button>
+              </div>
             )}
 
-            {isAdmin && (
-              <FileDropzone
-                label={editMode ? "Upload More Files" : "Upload Attachments"}
-                selectedFiles={selectedFiles}
-                isDragging={isDragging}
-                fileInputRef={fileInputRef}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onFileInputChange={handleFileChange}
-                onRemoveFile={removeSelectedFile}
-              />
-            )}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm">Subject</label>
+
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  readOnly={!isAdmin && editMode}
+                  className={`w-full rounded-md border px-3 py-2 read-only:cursor-not-allowed read-only:bg-gray-100 ${
+                    errors.subject ? "border-red-500" : ""
+                  }`}
+                />
+
+                {errors.subject && (
+                  <p className="mt-1 text-sm text-red-600">{errors.subject}</p>
+                )}
+              </div>
+
+              {editMode && isAdmin && statuses?.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm">Status</label>
+
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    style={{
+                      borderLeft: `4px solid ${currentStatusColor || "#94a3b8"}`,
+                    }}
+                  >
+                    {statuses.map((s) => (
+                      <option key={s._id} value={s.name}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm">Description</label>
+
+                <RichTextEditor
+                  value={formData.description}
+                  onChange={(html) => {
+                    setFormData((prev) => ({ ...prev, description: html }));
+                    setErrors((prev) => ({ ...prev, description: "" }));
+                  }}
+                  rows={4}
+                />
+
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
+              {editMode && (
+                <AttachmentsList
+                  attachments={currentAttachments}
+                  selectedForDownload={selectedForDownload}
+                  isAdmin={isAdmin}
+                  onToggleSelect={toggleSelectForDownload}
+                  onSelectAll={(checked) =>
+                    setSelectedForDownload(
+                      checked
+                        ? currentAttachments.map((file) => file.fileName)
+                        : [],
+                    )
+                  }
+                  onView={(file) => onViewAttachment(ticketCode, file)}
+                  onDownload={(file) => onDownloadAttachment(ticketCode, file)}
+                  onDownloadSelected={() =>
+                    onDownloadMultiple(
+                      ticketCode,
+                      currentAttachments.filter((file) =>
+                        selectedForDownload.includes(file.fileName),
+                      ),
+                    )
+                  }
+                  onDelete={requestDeleteAttachment}
+                />
+              )}
+
+              {isAdmin && (
+                <FileDropzone
+                  label={editMode ? "Upload More Files" : "Upload Attachments"}
+                  selectedFiles={selectedFiles}
+                  isDragging={isDragging}
+                  fileInputRef={fileInputRef}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onFileInputChange={handleFileChange}
+                  onRemoveFile={removeSelectedFile}
+                />
+              )}
+            </div>
           </div>
-          <div className="mt-5 flex justify-end gap-2">
+
+          <div className="flex justify-end gap-2 border-t p-4">
             <button
               type="button"
               onClick={() => {

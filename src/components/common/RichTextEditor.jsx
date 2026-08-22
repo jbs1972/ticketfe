@@ -96,8 +96,8 @@ const RichTextEditor = ({ value, onChange, placeholder, rows = 3 }) => {
         onMouseUp={updateActiveStates}
         onFocus={updateActiveStates}
         data-placeholder={placeholder}
-        style={{ minHeight: `${rows * 1.5}rem` }}
-        className="rich-text-editor w-full px-3 py-2 text-sm outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+        style={{ minHeight: `${rows * 1.5}rem`, maxHeight: `${rows * 6}rem` }}
+        className="rich-text-editor w-full overflow-y-auto px-3 py-2 text-sm outline-none [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
       />
     </div>
   );
