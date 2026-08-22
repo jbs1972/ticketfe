@@ -54,3 +54,8 @@ html {
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
 }
+
+.rich-text-editor:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+}

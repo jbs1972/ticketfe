@@ -38,3 +38,59 @@ export const downloadCommentAttachment = async (
     },
   );
 };
+
+export const editComment = async (
+  ticketCode,
+  commentId,
+  message,
+  files = [],
+) => {
+  const formData = new FormData();
+  formData.append("message", message);
+
+  Array.from(files).forEach((file) => formData.append("attachments", file));
+
+  const { data } = await api.put(
+    `/tickets/${ticketCode}/comments/${commentId}`,
+    formData,
+    {
+      headers: {
+        "x-auth-token": getToken(),
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return data;
+};
+
+export const deleteComment = async (ticketCode, commentId) => {
+  const { data } = await api.delete(
+    `/tickets/${ticketCode}/comments/${commentId}`,
+    { headers: { "x-auth-token": getToken() } },
+  );
+
+  return data;
+};
+
+export const deleteCommentAttachment = async (
+  ticketCode,
+  commentId,
+  fileName,
+) => {
+  const { data } = await api.delete(
+    `/tickets/${ticketCode}/comments/${commentId}/attachments/${encodeURIComponent(fileName)}`,
+    { headers: { "x-auth-token": getToken() } },
+  );
+
+  return data;
+};
+
+export const searchComments = async (ticketCode, params) => {
+  const { data } = await api.get(`/tickets/${ticketCode}/comments/search`, {
+    headers: { "x-auth-token": getToken() },
+    params,
+  });
+
+  return data;
+};

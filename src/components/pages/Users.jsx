@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaPlus, FaPen } from "react-icons/fa";
+import { FaPlus, FaPen, FaTrashAlt } from "react-icons/fa";
 
 import { getUsers, deleteUser } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
@@ -12,6 +12,15 @@ import EditUserModal from "../user/EditUserModal";
 import Pagination from "../common/Pagination";
 import ConfirmDialog from "../common/ConfirmDialog";
 import Table from "../common/Table";
+
+const formatDate = (date) => {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 const Users = () => {
   const { user: currentUser } = useAuth();
@@ -62,7 +71,6 @@ const Users = () => {
   };
 
   const handleDeleteRequest = (user) => {
-    setEditTarget(null);
     setDeleteTarget(user);
   };
 
@@ -134,8 +142,19 @@ const Users = () => {
       ),
     },
     {
-      key: "action",
-      header: "Action",
+      key: "registrationDate",
+      header: "Registered On",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (user) => (
+        <span className="text-xs text-slate-600">
+          {formatDate(user.registrationDate)}
+        </span>
+      ),
+    },
+    {
+      key: "edit",
+      header: "Edit",
       headerClassName: "text-center",
       cellClassName: "text-center",
       render: (user) => {
@@ -153,6 +172,30 @@ const Users = () => {
             }
           >
             <FaPen size={12} />
+          </button>
+        );
+      },
+    },
+    {
+      key: "delete",
+      header: "Delete",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (user) => {
+        const deletable = canAlter(user);
+
+        return (
+          <button
+            onClick={() => handleDeleteRequest(user)}
+            disabled={!deletable}
+            title={deletable ? "Delete" : "Not permitted"}
+            className={
+              deletable
+                ? "rounded-md p-2 text-red-600 hover:bg-red-100"
+                : "cursor-not-allowed rounded-md p-2 text-slate-300"
+            }
+          >
+            <FaTrashAlt size={12} />
           </button>
         );
       },
@@ -202,7 +245,6 @@ const Users = () => {
         user={editTarget}
         onClose={() => setEditTarget(null)}
         onSaved={handleUserSaved}
-        onDeleteRequest={handleDeleteRequest}
       />
 
       <ConfirmDialog

@@ -3,6 +3,7 @@ import { FaDownload, FaEye, FaSyncAlt } from "react-icons/fa";
 
 import { useNavigate } from "react-router-dom";
 import useEscapeKey from "../../hooks/useEscapeKey";
+import { isRichTextHtml } from "../../utilities/ticketHelpers";
 
 const formatFileSize = (size) => {
   if (size < 1024) return `${size} B`;
@@ -89,9 +90,16 @@ const TicketViewModal = ({
         <div className="mb-4">
           <label className="mb-2 block text-sm font-medium">Description</label>
 
-          <div className="h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-md border bg-gray-50 px-3 py-2">
-            {ticket.description}
-          </div>
+          {isRichTextHtml(ticket.description) ? (
+            <div
+              className="h-56 overflow-y-auto break-words rounded-md border bg-gray-50 px-3 py-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{ __html: ticket.description }}
+            />
+          ) : (
+            <div className="h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-md border bg-gray-50 px-3 py-2">
+              {ticket.description}
+            </div>
+          )}
         </div>
 
         <div>
@@ -189,7 +197,7 @@ const TicketViewModal = ({
             }}
             className="rounded-md border px-5 py-2 hover:bg-gray-100"
           >
-            View Full Page
+            Go to Conversation
           </button>
 
           {canEdit && (

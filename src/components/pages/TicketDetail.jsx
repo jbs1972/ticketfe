@@ -19,13 +19,19 @@ import { getTicketStatuses } from "../../services/ticketStatus.service";
 import useAuth from "../../hooks/useAuth";
 import useAttachmentActions from "../../hooks/useAttachmentActions";
 import { toastError, toastSuccess } from "../../utilities/toast";
-import { getErrorMessage, formatFileSize } from "../../utilities/ticketHelpers";
 import CardSkeleton from "../common/CardSkeleton";
 import AttachmentsList from "../ticket/AttachmentsList";
-import FileDropzone from "../ticket/FileDropzone";
+import FileDropzone from "../common/FileDropzone";
 import ConfirmDialog from "../common/ConfirmDialog";
 import CommentsSection from "../ticket/CommentsSection";
 import socket from "../../services/socket";
+import RichTextEditor from "../common/RichTextEditor";
+import {
+  getErrorMessage,
+  formatFileSize,
+  isEmptyRichText,
+  isRichTextHtml,
+} from "../../utilities/ticketHelpers";
 
 const TicketDetail = () => {
   const { ticketCode } = useParams();
@@ -245,7 +251,7 @@ const TicketDetail = () => {
       validationErrors.subject = "Subject is required.";
     }
 
-    if (!formData.description.trim()) {
+    if (isEmptyRichText(formData.description)) {
       validationErrors.description = "Description is required.";
     }
 
@@ -340,16 +346,6 @@ const TicketDetail = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => navigate("/tickets")}
-          className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600"
-        >
-          <FaArrowLeft /> Back to Tickets
-        </button>
-      </div>
-
       {pendingUpdate && (
         <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
           <span>This ticket may have new updates.</span>
@@ -460,14 +456,13 @@ const TicketDetail = () => {
 
             {isEditing ? (
               <>
-                <textarea
-                  rows="5"
-                  name="description"
+                <RichTextEditor
                   value={formData.description}
-                  onChange={handleFieldChange}
-                  className={`w-full rounded-md border px-3 py-2 ${
-                    errors.description ? "border-red-500" : ""
-                  }`}
+                  onChange={(html) => {
+                    setFormData((prev) => ({ ...prev, description: html }));
+                    setErrors((prev) => ({ ...prev, description: "" }));
+                  }}
+                  rows={5}
                 />
 
                 {errors.description && (
@@ -476,6 +471,11 @@ const TicketDetail = () => {
                   </p>
                 )}
               </>
+            ) : isRichTextHtml(ticket.description) ? (
+              <div
+                className="h-40 overflow-y-auto break-words rounded-md border bg-gray-50 px-3 py-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: ticket.description }}
+              />
             ) : (
               <div className="h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-md border bg-gray-50 px-3 py-2">
                 {ticket.description}

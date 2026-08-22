@@ -101,3 +101,12 @@ export const setTicketStatus = async (ticketCode, status) => {
 
   return data;
 };
+
+export const searchTickets = async (params) => {
+  const { data } = await api.get("/tickets/search", {
+    headers: { "x-auth-token": getToken() },
+    params,
+  });
+
+  return data;
+};

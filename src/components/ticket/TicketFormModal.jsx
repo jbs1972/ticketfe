@@ -3,9 +3,12 @@ import { FaSyncAlt } from "react-icons/fa";
 import { toastError } from "../../utilities/toast";
 import { getErrorMessage, formatFileSize } from "../../utilities/ticketHelpers";
 import AttachmentsList from "./AttachmentsList";
-import FileDropzone from "./FileDropzone";
+import FileDropzone from "../common/FileDropzone";
 import ConfirmDialog from "../common/ConfirmDialog";
 import useEscapeKey from "../../hooks/useEscapeKey";
+import useFileDropzone from "../../hooks/useFileDropzone";
+import RichTextEditor from "../common/RichTextEditor";
+import { isEmptyRichText } from "../../utilities/ticketHelpers";
 
 const TicketFormModal = ({
   editMode,
@@ -32,8 +35,6 @@ const TicketFormModal = ({
 
   const [errors, setErrors] = useState({});
 
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
   const [currentAttachments, setCurrentAttachments] = useState(
     initialAttachments || [],
   );
@@ -42,14 +43,10 @@ const TicketFormModal = ({
 
   const [selectedForDownload, setSelectedForDownload] = useState([]);
 
-  const [isDragging, setIsDragging] = useState(false);
-
   const [deleteAttachmentConfirm, setDeleteAttachmentConfirm] = useState({
     open: false,
     fileName: null,
   });
-
-  const fileInputRef = useRef(null);
 
   useEscapeKey(true, onClose);
 
@@ -65,43 +62,6 @@ const TicketFormModal = ({
       ...prev,
       [name]: "",
     }));
-  };
-
-  const addFiles = (newFiles) => {
-    setSelectedFiles((prev) => {
-      const existingKeys = new Set(prev.map((f) => `${f.name}-${f.size}`));
-
-      const uniqueNewFiles = newFiles.filter(
-        (f) => !existingKeys.has(`${f.name}-${f.size}`),
-      );
-
-      return [...prev, ...uniqueNewFiles];
-    });
-  };
-
-  const handleFileChange = (e) => {
-    addFiles(Array.from(e.target.files));
-    e.target.value = "";
-  };
-
-  const removeSelectedFile = (index) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    addFiles(Array.from(e.dataTransfer.files));
   };
 
   const handleRefresh = async () => {
@@ -126,7 +86,7 @@ const TicketFormModal = ({
       validationErrors.subject = "Subject is required.";
     }
 
-    if (!formData.description.trim()) {
+    if (isEmptyRichText(formData.description)) {
       validationErrors.description = "Description is required.";
     }
 
@@ -187,6 +147,18 @@ const TicketFormModal = ({
     });
   };
 
+  const {
+    selectedFiles,
+    isDragging,
+    fileInputRef,
+    handleFileChange,
+    removeSelectedFile,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    resetFiles,
+  } = useFileDropzone();
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -234,14 +206,13 @@ const TicketFormModal = ({
             <div>
               <label className="mb-1 block text-sm">Description</label>
 
-              <textarea
-                rows="4"
-                name="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={handleChange}
-                className={`w-full rounded-md border px-3 py-2 ${
-                  errors.description ? "border-red-500" : ""
-                }`}
+                onChange={(html) => {
+                  setFormData((prev) => ({ ...prev, description: html }));
+                  setErrors((prev) => ({ ...prev, description: "" }));
+                }}
+                rows={4}
               />
 
               {errors.description && (

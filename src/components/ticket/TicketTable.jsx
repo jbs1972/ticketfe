@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEdit, FaTrash, FaEye, FaPaperclip } from "react-icons/fa";
+import { FaEdit, FaTrash, FaEye, FaPaperclip, FaComment } from "react-icons/fa";
 import Table from "../common/Table";
 
 const TicketTable = ({
@@ -12,6 +12,7 @@ const TicketTable = ({
   onView,
   onEdit,
   onDelete,
+  statuses = [],
 }) => {
   const navigate = useNavigate();
 
@@ -23,6 +24,14 @@ const TicketTable = ({
       cellClassName: "text-center",
       width: "w-16",
       render: (_, index) => (currentPage - 1) * itemsPerPage + index + 1,
+    },
+    {
+      key: "ticketCode",
+      header: "Code",
+      width: "w-24",
+      render: (ticket) => (
+        <span className="text-slate-600">{ticket.ticketCode}</span>
+      ),
     },
     {
       key: "subject",
@@ -44,6 +53,35 @@ const TicketTable = ({
               title={`${ticket.attachments.length} attachment(s)`}
             />
           )}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      render: (ticket) => {
+        const statusConfig = statuses.find((s) => s.name === ticket.status);
+        const color = statusConfig?.color || ticket.statusColor || "#94a3b8";
+
+        return (
+          <span className="text-xs font-medium" style={{ color }}>
+            {ticket.status}
+          </span>
+        );
+      },
+    },
+    {
+      key: "commentCount",
+      header: "Comments",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      width: "w-24",
+      render: (ticket) => (
+        <div className="flex items-center justify-center gap-1 text-slate-500">
+          <FaComment size={11} />
+          {ticket.commentCount || 0}
         </div>
       ),
     },

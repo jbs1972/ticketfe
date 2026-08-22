@@ -1,16 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaPlus, FaSyncAlt } from "react-icons/fa";
 
 import useAuth from "../../hooks/useAuth";
 import useTickets from "../../hooks/useTickets";
 import useAttachmentActions from "../../hooks/useAttachmentActions";
+import { searchTickets } from "../../services/ticket.service";
+import { getTicketStatuses } from "../../services/ticketStatus.service";
 
 import TicketViewModal from "../ticket/TicketViewModal";
 import TicketTable from "../ticket/TicketTable";
 import TicketFormModal from "../ticket/TicketFormModal";
 import Pagination from "../common/Pagination";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { getErrorMessage, formatFileSize } from "../../utilities/ticketHelpers";
+import SearchBar from "../common/SearchBar";
+import { toastError } from "../../utilities/toast";
+import { getErrorMessage } from "../../utilities/ticketHelpers";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -38,6 +42,9 @@ const Ticket = () => {
   } = useAttachmentActions();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [statuses, setStatuses] = useState([]);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -52,7 +59,47 @@ const Ticket = () => {
     loading: false,
   });
 
-  const currentTickets = tickets.slice(
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const response = await getTicketStatuses();
+        setStatuses(response.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchStatuses();
+  }, []);
+
+  const handleSearch = async (criteria) => {
+    const isEmpty =
+      !criteria.q && !criteria.status && !criteria.from && !criteria.to;
+
+    if (isEmpty) {
+      setSearchResults(null);
+      setCurrentPage(1);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const response = await searchTickets(criteria);
+      setSearchResults(response.data || []);
+      setCurrentPage(1);
+    } catch (error) {
+      toastError(
+        "Search Failed",
+        getErrorMessage(error, "Could not search tickets."),
+      );
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const displayedTickets = searchResults !== null ? searchResults : tickets;
+
+  const currentTickets = displayedTickets.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
@@ -96,12 +143,9 @@ const Ticket = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-slate-700">
-          Ticket Details
-        </h2>
+        <h2 className="text-xl font-semibold text-slate-700">Ticket Details</h2>
 
         <div className="flex items-center gap-3">
-          
           {isAdmin && (
             <button
               onClick={openCreateModal}
@@ -129,20 +173,28 @@ const Ticket = () => {
         </div>
       )}
 
+      <SearchBar
+        placeholder="Search by subject, description, code, attachment or comment..."
+        showStatus={true}
+        statusOptions={statuses.map((s) => s.name)}
+        onSearch={handleSearch}
+      />
+
       <TicketTable
         tickets={currentTickets}
-        loading={loading}
+        loading={loading || searching}
         isAdmin={isAdmin}
         currentPage={currentPage}
         itemsPerPage={ITEMS_PER_PAGE}
         onView={openViewModal}
         onEdit={openEditModal}
         onDelete={requestDeleteTicket}
+        statuses={statuses}
       />
 
       <Pagination
         currentPage={currentPage}
-        totalItems={tickets.length}
+        totalItems={displayedTickets.length}
         itemsPerPage={ITEMS_PER_PAGE}
         onPageChange={setCurrentPage}
       />

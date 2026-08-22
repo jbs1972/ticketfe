@@ -54,3 +54,15 @@ export const getErrorMessage = (error, fallback) =>
   error?.response?.data?.data?.errors?.[0] ||
   error?.response?.data?.message ||
   fallback;
+
+// Rich text helpers
+export const isEmptyRichText = (html) => {
+  if (!html) return true;
+  const stripped = html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+  return stripped.length === 0;
+};
+
+export const isRichTextHtml = (value) => /<[a-z][\s\S]*>/i.test(value || "");

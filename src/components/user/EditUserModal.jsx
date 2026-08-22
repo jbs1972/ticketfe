@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { FaTrashAlt } from "react-icons/fa";
 import {
   updateUserName,
   updateUserRole,
@@ -13,7 +12,7 @@ import Modal from "../common/Modal";
 import InputBox from "../common/InputBox";
 import Button from "../common/Button";
 
-const EditUserModal = ({ open, user, onClose, onSaved, onDeleteRequest }) => {
+const EditUserModal = ({ open, user, onClose, onSaved }) => {
   const [name, setName] = useState("");
   const [role, setRole] = useState("user");
   const [isActive, setIsActive] = useState(true);
@@ -126,13 +125,6 @@ const EditUserModal = ({ open, user, onClose, onSaved, onDeleteRequest }) => {
         </div>
 
         <div className="flex items-center justify-between border-t pt-4">
-          <button
-            type="button"
-            onClick={() => onDeleteRequest(user)}
-            className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
-          >
-            <FaTrashAlt size={11} /> Delete User
-          </button>
 
           <div className="flex gap-3">
             <Button
