@@ -1,18 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { FaPlus, FaSyncAlt } from "react-icons/fa";
-
+import { useEffect, useState } from "react";
+import { Plus, RefreshCw } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import useTickets from "../../hooks/useTickets";
 import useAttachmentActions from "../../hooks/useAttachmentActions";
 import { searchTickets } from "../../services/ticket.service";
 import { getTicketStatuses } from "../../services/ticketStatus.service";
-
 import TicketViewModal from "../ticket/TicketViewModal";
 import TicketTable from "../ticket/TicketTable";
 import TicketFormModal from "../ticket/TicketFormModal";
 import Pagination from "../common/Pagination";
 import ConfirmDialog from "../common/ConfirmDialog";
 import SearchBar from "../common/SearchBar";
+import Button from "../common/Button";
 import { toastError } from "../../utilities/toast";
 import { getErrorMessage } from "../../utilities/ticketHelpers";
 
@@ -21,7 +20,6 @@ const ITEMS_PER_PAGE = 10;
 const Ticket = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-
   const {
     tickets,
     loading,
@@ -34,25 +32,21 @@ const Ticket = () => {
     updateTicket,
     deleteTicket,
   } = useTickets();
-
   const {
     handleDownloadAttachment,
     handleDownloadMultiple,
     handleViewAttachment,
   } = useAttachmentActions();
-
   const [currentPage, setCurrentPage] = useState(1);
   const [statuses, setStatuses] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
-
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [currentTicketId, setCurrentTicketId] = useState("");
   const [editingTicket, setEditingTicket] = useState(null);
-
   const [deleteTicketConfirm, setDeleteTicketConfirm] = useState({
     open: false,
     id: null,
@@ -68,20 +62,17 @@ const Ticket = () => {
         console.error(error);
       }
     };
-
     fetchStatuses();
   }, []);
 
   const handleSearch = async (criteria) => {
     const isEmpty =
       !criteria.q && !criteria.status && !criteria.from && !criteria.to;
-
     if (isEmpty) {
       setSearchResults(null);
       setCurrentPage(1);
       return;
     }
-
     try {
       setSearching(true);
       const response = await searchTickets(criteria);
@@ -98,7 +89,6 @@ const Ticket = () => {
   };
 
   const displayedTickets = searchResults !== null ? searchResults : tickets;
-
   const currentTickets = displayedTickets.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
@@ -134,52 +124,40 @@ const Ticket = () => {
 
   const confirmDeleteTicket = async () => {
     const id = deleteTicketConfirm.id;
-
     setDeleteTicketConfirm((prev) => ({ ...prev, loading: true }));
     await deleteTicket(id);
     setDeleteTicketConfirm({ open: false, id: null, loading: false });
   };
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-slate-700">Ticket Details</h2>
-
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button
-              onClick={openCreateModal}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
-            >
-              <FaPlus />
-              Add Ticket
-            </button>
-          )}
-        </div>
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">Ticket Details</h2>
+        {isAdmin && (
+          <Button onClick={openCreateModal} leftIcon={<Plus size={16} />}>
+            Add Ticket
+          </Button>
+        )}
       </div>
-
       {pendingUpdateIds.length > 0 && (
-        <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
           <span>New updates are available.</span>
-
           <button
             onClick={handleManualRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1 rounded-md border border-blue-300 bg-white px-3 py-1 text-xs text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-md border border-blue-300 bg-white px-3 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-60"
           >
-            <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       )}
-
       <SearchBar
         placeholder="Search by subject, description, code, attachment or comment..."
         showStatus={true}
         statusOptions={statuses.map((s) => s.name)}
         onSearch={handleSearch}
       />
-
       <TicketTable
         tickets={currentTickets}
         loading={loading || searching}
@@ -191,14 +169,12 @@ const Ticket = () => {
         onDelete={requestDeleteTicket}
         statuses={statuses}
       />
-
       <Pagination
         currentPage={currentPage}
         totalItems={displayedTickets.length}
         itemsPerPage={ITEMS_PER_PAGE}
         onPageChange={setCurrentPage}
       />
-
       <>
         <TicketViewModal
           open={showViewModal}
@@ -220,7 +196,6 @@ const Ticket = () => {
           refreshing={refreshing}
           onRefresh={handleRefreshViewModal}
         />
-
         {showModal && (
           <TicketFormModal
             editMode={editMode}
@@ -245,7 +220,6 @@ const Ticket = () => {
             onClose={() => setShowModal(false)}
           />
         )}
-
         <ConfirmDialog
           open={deleteTicketConfirm.open}
           type="delete"

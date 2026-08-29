@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { LockKeyhole, ShieldCheck, CircleCheck, CircleX } from "lucide-react";
-
+import { useMemo, useState } from "react";
+import { LockKeyhole, KeyRound } from "lucide-react";
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
 
@@ -21,9 +20,7 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
 
   const errors = useMemo(() => {
     const validationErrors = {};
-
     const password = formData.newPassword?.trim() || "";
-
     if (password.length === 0) {
       validationErrors.newPassword = "New password is required.";
     } else if (password.length < PASSWORD_RULES.minLength) {
@@ -43,15 +40,12 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
       validationErrors.newPassword =
         "Password must contain at least one special character (#, @ or $).";
     }
-
     const confirmPassword = formData.confirmPassword?.trim() || "";
-
     if (confirmPassword.length === 0) {
       validationErrors.confirmPassword = "Confirm password is required.";
     } else if (confirmPassword !== password) {
       validationErrors.confirmPassword = "Passwords do not match.";
     }
-
     return validationErrors;
   }, [formData]);
 
@@ -59,78 +53,53 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
 
   const handleInputChange = (event) => {
     const { name } = event.target;
-
     setTouched((prev) => ({
       ...prev,
       [name]: true,
     }));
-
     onChange(event);
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-
     setTouched({
       newPassword: true,
       confirmPassword: true,
     });
-
     if (!isFormValid) {
       return;
     }
-
     onSubmit(event);
   };
-
-  const Requirement = ({ passed, text }) => (
-    <div
-      className={`flex items-center gap-2 text-sm ${
-        passed ? "text-green-600" : "text-gray-500"
-      }`}
-    >
-      {passed ? <CircleCheck size={16} /> : <CircleX size={16} />}
-
-      <span>{text}</span>
-    </div>
-  );
 
   return (
     <form noValidate onSubmit={handleSubmit} className="space-y-5">
       <div className="text-center">
-        <ShieldCheck size={52} className="mx-auto mb-3 text-green-600" />
-
-        <h2 className="text-xl font-semibold text-gray-800">
-          Create New Password
-        </h2>
-
-        <p className="mt-2 text-sm text-gray-500">
+        <KeyRound size={40} className="mx-auto mb-2 text-blue-600" />
+        <p className="text-sm text-gray-500">
           Choose a strong password for your account.
         </p>
       </div>
-
       <InputBox
         label="New Password"
         name="newPassword"
         type="password"
         value={formData.newPassword}
         onChange={handleInputChange}
-        leftIcon={<LockKeyhole size={18} />}
+        leftIcon={<LockKeyhole size={16} />}
         placeholder="Enter new password"
         error={touched.newPassword ? errors.newPassword : ""}
       />
-
       <InputBox
         label="Confirm Password"
         name="confirmPassword"
         type="password"
         value={formData.confirmPassword}
         onChange={handleInputChange}
-        leftIcon={<LockKeyhole size={18} />}
+        leftIcon={<LockKeyhole size={16} />}
         placeholder="Confirm new password"
         error={touched.confirmPassword ? errors.confirmPassword : ""}
       />
-
       <Button
         type="submit"
         fullWidth

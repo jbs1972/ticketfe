@@ -1,19 +1,9 @@
-import { useState, useEffect } from "react";
-import { FaDownload, FaEye, FaSyncAlt } from "react-icons/fa";
-
+import { Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useEscapeKey from "../../hooks/useEscapeKey";
+import Button from "../common/Button";
+import AttachmentsList from "./AttachmentsList";
 import { isRichTextHtml } from "../../utilities/ticketHelpers";
-
-const formatFileSize = (size) => {
-  if (size < 1024) return `${size} B`;
-
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(2)} KB`;
-  }
-
-  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
-};
 
 const TicketViewModal = ({
   open,
@@ -23,201 +13,74 @@ const TicketViewModal = ({
   onDownload,
   onView,
   canEdit,
-  pendingUpdate,
-  refreshing,
-  onRefresh,
 }) => {
-  const [selectedFileNames, setSelectedFileNames] = useState([]);
-
-  useEffect(() => {
-    setSelectedFileNames([]);
-  }, [ticket, open]);
-
   const navigate = useNavigate();
   useEscapeKey(open, onClose);
 
   if (!open || !ticket) return null;
 
-  const attachments = ticket.attachments || [];
-
-  const toggleSelect = (fileName) => {
-    setSelectedFileNames((prev) =>
-      prev.includes(fileName)
-        ? prev.filter((f) => f !== fileName)
-        : [...prev, fileName],
-    );
-  };
-
-  const handleDownloadSelected = async () => {
-    const files = attachments.filter((f) =>
-      selectedFileNames.includes(f.fileName),
-    );
-
-    for (const file of files) {
-      await onDownload(file);
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-[700px] rounded-lg bg-white p-5 shadow-lg">
-        <h2 className="mb-5 text-xl font-semibold">Ticket Details</h2>
-        {pendingUpdate && (
-          <div className="mb-4 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-            <span>This ticket may have new updates.</span>
-
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-1 rounded-md border border-blue-300 bg-white px-2 py-1 text-blue-700 hover:bg-blue-100 disabled:opacity-60"
-            >
-              <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-        )}
-
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium">Subject</label>
-
-          <div className="break-words rounded-md border bg-gray-50 px-3 py-2">
-            {ticket.subject}
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium">Description</label>
-
-          {isRichTextHtml(ticket.description) ? (
-            <div
-              className="h-56 overflow-y-auto break-words rounded-md border bg-gray-50 px-3 py-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
-              dangerouslySetInnerHTML={{ __html: ticket.description }}
-            />
-          ) : (
-            <div className="h-56 overflow-y-auto whitespace-pre-wrap break-words rounded-md border bg-gray-50 px-3 py-2">
-              {ticket.description}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-scaleIn">
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">
+            Ticket Details
+          </h2>
+          <div className="mb-3">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Subject
+            </label>
+            <div className="break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+              {ticket.subject}
             </div>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="block text-sm font-medium">Attachments</label>
-
-            {attachments.length > 0 && (
-              <button
-                type="button"
-                onClick={handleDownloadSelected}
-                disabled={!selectedFileNames.length}
-                className="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-              >
-                Download Selected ({selectedFileNames.length})
-              </button>
-            )}
           </div>
-
-          <div className="max-h-52 overflow-y-auto rounded-md border">
-            {attachments.length ? (
-              <>
-                <div className="flex items-center gap-2 border-b bg-slate-50 px-3 py-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedFileNames.length === attachments.length}
-                    onChange={(e) =>
-                      setSelectedFileNames(
-                        e.target.checked
-                          ? attachments.map((f) => f.fileName)
-                          : [],
-                      )
-                    }
-                  />
-                  <span className="text-xs text-gray-500">Select All</span>
-                </div>
-
-                {attachments.map((file) => (
-                  <div
-                    key={file.fileName}
-                    className="flex items-center justify-between border-b px-3 py-2 last:border-b-0"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedFileNames.includes(file.fileName)}
-                        onChange={() => toggleSelect(file.fileName)}
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {file.originalName}
-                        </p>
-
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(file.size)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="ml-3 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => onView?.(file)}
-                        className="text-slate-600 hover:text-slate-800"
-                        title="View"
-                      >
-                        <FaEye />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onDownload(file)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Download"
-                      >
-                        <FaDownload />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
+          <div className="mb-3">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            {isRichTextHtml(ticket.description) ? (
+              <div
+                className="h-40 overflow-y-auto break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: ticket.description }}
+              />
             ) : (
-              <div className="px-3 py-5 text-center text-sm text-gray-500">
-                No attachments available.
+              <div className="h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                {ticket.description}
               </div>
             )}
           </div>
+          <AttachmentsList
+            label="Attachments"
+            attachments={ticket.attachments || []}
+            isAdmin={false}
+            onView={(file) => onView?.(file)}
+            onDownload={(file) => onDownload(file)}
+          />
         </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
+        <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-5 py-3">
+          <Button
+            variant="secondary"
             onClick={() => {
               onClose();
               navigate(`/tickets/${ticket.ticketCode}`);
             }}
-            className="rounded-md border px-5 py-2 hover:bg-gray-100"
           >
             Go to Conversation
-          </button>
-
+          </Button>
           {canEdit && (
-            <button
+            <Button
               onClick={() => {
                 onClose();
                 onEdit(ticket);
               }}
-              className="rounded-md bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
+              leftIcon={<Download size={0} className="hidden" />}
             >
               Edit
-            </button>
+            </Button>
           )}
-
-          <button
-            onClick={onClose}
-            className="rounded-md border px-5 py-2 hover:bg-gray-100"
-          >
+          <Button variant="secondary" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>

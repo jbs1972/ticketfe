@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { Search, X } from "lucide-react";
+
+const fieldClass =
+  "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200";
 
 const SearchBar = ({
   onSearch,
   placeholder = "Search...",
   showStatus = false,
   statusOptions = [],
+  className = "mb-4",
 }) => {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -32,21 +36,22 @@ const SearchBar = ({
   };
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border bg-white p-3">
+    <div
+      className={`flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm ${className}`}
+    >
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="min-w-[200px] flex-1 rounded-md border px-3 py-2 text-sm"
+        className={`${fieldClass} min-w-[200px] flex-1`}
       />
-
       {showStatus && (
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-md border px-3 py-2 text-sm"
+          className={fieldClass}
         >
           <option value="">All Statuses</option>
           {statusOptions.map((s) => (
@@ -56,38 +61,33 @@ const SearchBar = ({
           ))}
         </select>
       )}
-
       <input
         type="date"
         value={from}
         onChange={(e) => setFrom(e.target.value)}
-        className="rounded-md border px-3 py-2 text-sm"
+        className={fieldClass}
       />
-
       <span className="text-sm text-gray-500">to</span>
-
       <input
         type="date"
         value={to}
         onChange={(e) => setTo(e.target.value)}
-        className="rounded-md border px-3 py-2 text-sm"
+        className={fieldClass}
       />
-
       <button
         type="button"
         onClick={triggerSearch}
-        className="flex items-center gap-1 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-blue-700"
       >
-        <FaSearch size={12} />
+        <Search size={14} />
         Search
       </button>
-
       <button
         type="button"
         onClick={handleClear}
-        className="flex items-center gap-1 rounded-md border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors duration-200 hover:bg-gray-100"
       >
-        <FaTimes size={12} />
+        <X size={14} />
         Clear
       </button>
     </div>

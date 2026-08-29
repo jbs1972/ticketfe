@@ -6,7 +6,7 @@ import {
 } from "../services/auth.service";
 import { saveToken, getToken, removeToken } from "../utilities/tokenStorage";
 import { toastWarning } from "../utilities/toast";
-import socket from "../services/socket";
+import socket, { reauthenticateSocket } from "../services/socket";
 
 export const AuthContext = createContext(null);
 
@@ -46,6 +46,7 @@ export default function AuthProvider({ children }) {
       const token = response.data.token;
 
       saveToken(token);
+      reauthenticateSocket();
 
       const profile = await getProfile(token);
 
@@ -99,6 +100,7 @@ export default function AuthProvider({ children }) {
       socket.off("account:roleChanged", handleRoleChanged);
     };
   }, []);
+
 
   return (
     <AuthContext.Provider

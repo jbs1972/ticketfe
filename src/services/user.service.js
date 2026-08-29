@@ -71,3 +71,11 @@ export const deleteUser = async (userId, token) => {
 
   return data;
 };
+
+export const getMentionableUsers = async (token) => {
+  const { data } = await api.get("/users/mentionable", {
+    headers: { "x-auth-token": token },
+  });
+
+  return data;
+};

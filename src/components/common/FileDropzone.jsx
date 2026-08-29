@@ -1,5 +1,4 @@
-import React from "react";
-import { FaTimes } from "react-icons/fa";
+import { X } from "lucide-react";
 
 const FileDropzone = ({
   label,
@@ -14,15 +13,18 @@ const FileDropzone = ({
 }) => {
   return (
     <div>
-      <label className="mb-1 block text-sm">{label}</label>
-
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <div
         onClick={() => fileInputRef.current?.click()}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`cursor-pointer rounded-md border-2 border-dashed px-3 py-6 text-center text-sm ${
-          isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+        className={`cursor-pointer rounded-lg border-2 border-dashed px-4 py-4 text-center text-xs transition-colors duration-200 ${
+          isDragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 text-gray-500 hover:border-gray-400"
         }`}
       >
         <input
@@ -34,21 +36,20 @@ const FileDropzone = ({
         />
         Drag & drop files here, or click to browse
       </div>
-
       {selectedFiles.length > 0 && (
-        <div className="mt-2 max-h-32 overflow-y-auto rounded-md border">
+        <div className="mt-2 max-h-24 overflow-y-auto rounded-lg border border-gray-200">
           {selectedFiles.map((file, index) => (
             <div
               key={`${file.name}-${file.size}-${index}`}
-              className="flex items-center justify-between border-b px-3 py-1 text-xs last:border-b-0"
+              className="flex items-center justify-between border-b border-gray-100 px-2.5 py-1.5 text-xs last:border-b-0"
             >
-              <span className="truncate">{file.name}</span>
+              <span className="truncate text-gray-700">{file.name}</span>
               <button
                 type="button"
                 onClick={() => onRemoveFile(index)}
-                className="ml-2 text-red-600 hover:text-red-800"
+                className="ml-2 text-red-600 transition-colors hover:text-red-700"
               >
-                <FaTimes />
+                <X size={12} />
               </button>
             </div>
           ))}

@@ -31,3 +31,12 @@ export const toastWarning = (title, message) => {
     message,
   });
 };
+
+export const toastMention = (title, message, onClick) => {
+  emitToast({
+    type: "info",
+    title,
+    message,
+    onClick,
+  });
+};

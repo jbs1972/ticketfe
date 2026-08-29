@@ -1,5 +1,4 @@
 import { Navigate } from "react-router-dom";
-
 import useAuth from "../../hooks/useAuth";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -7,8 +6,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[calc(100vh-96px)] items-center justify-center">
-        <p className="text-lg font-medium text-gray-600">Loading...</p>
+      <div className="flex min-h-[calc(100vh-96px)] flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <p className="text-sm font-medium text-gray-500">Loading...</p>
       </div>
     );
   }

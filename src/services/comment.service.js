@@ -9,9 +9,15 @@ export const getComments = async (ticketCode) => {
   return data;
 };
 
-export const addComment = async (ticketCode, message, files = []) => {
+export const addComment = async (
+  ticketCode,
+  message,
+  files = [],
+  mentionedUserIds = [],
+) => {
   const formData = new FormData();
   formData.append("message", message);
+  formData.append("mentions", JSON.stringify(mentionedUserIds));
 
   Array.from(files).forEach((file) => formData.append("attachments", file));
 
@@ -44,9 +50,11 @@ export const editComment = async (
   commentId,
   message,
   files = [],
+  mentionedUserIds = [],
 ) => {
   const formData = new FormData();
   formData.append("message", message);
+  formData.append("mentions", JSON.stringify(mentionedUserIds));
 
   Array.from(files).forEach((file) => formData.append("attachments", file));
 
@@ -90,6 +98,14 @@ export const searchComments = async (ticketCode, params) => {
   const { data } = await api.get(`/tickets/${ticketCode}/comments/search`, {
     headers: { "x-auth-token": getToken() },
     params,
+  });
+
+  return data;
+};
+
+export const getMyMentions = async () => {
+  const { data } = await api.get(`/tickets/mentions/mine`, {
+    headers: { "x-auth-token": getToken() },
   });
 
   return data;

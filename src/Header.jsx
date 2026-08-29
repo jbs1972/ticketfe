@@ -1,27 +1,35 @@
 import { ROLE_LABELS } from "./utilities/constants";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-
 import { APP_LOGO_URL } from "./utilities/constants";
-
 import UserDropdown from "./components/layout/UserDropdown";
 import ProfileModal from "./components/layout/ProfileModal";
 import ConfirmDialog from "./components/common/ConfirmDialog";
-
 import useAuth from "./hooks/useAuth";
-import { toastSuccess } from "./utilities/toast";
+import { toastSuccess, toastMention } from "./utilities/toast";
 import EnvBadge from "./components/common/EnvBadge";
+import socket from "./services/socket";
 
 const PUBLIC_ROUTES = ["/login"];
 
 const Header = () => {
   const { user, isAuthenticated, logoutUser } = useAuth();
-
   const navigate = useNavigate();
   const location = useLocation();
-
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleMention = ({ ticketCode, commentId, authorName }) => {
+      toastMention(
+        "You were tagged",
+        `${authorName} mentioned you in ticket ${ticketCode}. Click to view.`,
+        () => navigate(`/tickets/${ticketCode}#comment-${commentId}`),
+      );
+    };
+    socket.on("comment:mentioned", handleMention);
+    return () => socket.off("comment:mentioned", handleMention);
+  }, [navigate]);
 
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
 
@@ -31,32 +39,28 @@ const Header = () => {
 
   const handleConfirmLogout = async () => {
     setIsLogoutDialogOpen(false);
-
     await logoutUser();
-
     toastSuccess("Logged Out", "You have been logged out successfully.");
-
     navigate("/login", { replace: true });
   };
 
   const navClass = ({ isActive }) =>
-    `relative px-3 py-2 text-base font-medium transition-colors duration-200 ${
+    `relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
       isActive ? "text-blue-600" : "text-gray-600 hover:text-blue-600"
     }`;
 
   return (
     <>
-      <header className="sticky top-3 z-40 mx-3 mt-3 rounded-xl bg-gray-100 px-8 py-3">
+      <header className="sticky top-3 z-40 mx-3 mt-3 rounded-xl border border-gray-200/80 bg-gray-100 px-5 py-2.5 shadow-sm">
         {isPublicRoute ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <img
               src={APP_LOGO_URL}
               alt="TaskFlow Logo"
               className="h-12 w-12 rounded-full"
             />
-
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-serif font-bold text-black">
+              <h1 className="font-serif text-2xl font-bold text-gray-900">
                 TaskFlow
               </h1>
               <EnvBadge />
@@ -64,15 +68,14 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <img
                 src={APP_LOGO_URL}
                 alt="TaskFlow Logo"
                 className="h-12 w-12 rounded-full"
               />
-
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-serif font-bold text-black">
+                <h1 className="font-serif text-2xl font-bold text-gray-900">
                   TaskFlow
                 </h1>
                 <EnvBadge />
@@ -81,7 +84,7 @@ const Header = () => {
 
             {isAuthenticated && (
               <>
-                <nav className="flex items-center gap-8">
+                <nav className="flex items-center gap-6">
                   <NavLink end to="/dashboard" className={navClass}>
                     {({ isActive }) => (
                       <span
@@ -93,7 +96,6 @@ const Header = () => {
                       </span>
                     )}
                   </NavLink>
-
                   {user?.role === "admin" && (
                     <NavLink to="/users" className={navClass}>
                       {({ isActive }) => (
@@ -107,7 +109,6 @@ const Header = () => {
                       )}
                     </NavLink>
                   )}
-
                   {user?.role === "admin" && (
                     <NavLink to="/configure" className={navClass}>
                       {({ isActive }) => (
@@ -121,7 +122,6 @@ const Header = () => {
                       )}
                     </NavLink>
                   )}
-
                   <NavLink to="/tickets" className={navClass}>
                     {({ isActive }) => (
                       <span
@@ -134,7 +134,6 @@ const Header = () => {
                     )}
                   </NavLink>
                 </nav>
-
                 <UserDropdown
                   username={user?.name}
                   roleLabel={ROLE_LABELS[user?.role] || "Member"}

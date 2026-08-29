@@ -89,3 +89,9 @@ export const formatDateTime = (date) => {
   });
   return `${day}/${month}/${year}, ${time}`;
 };
+
+export const extractMentionedUserIds = (html) => {
+  if (!html) return [];
+  const matches = [...html.matchAll(/data-user-id="([^"]+)"/g)];
+  return [...new Set(matches.map((m) => m[1]))];
+};

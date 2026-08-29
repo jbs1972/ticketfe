@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
-
 import InputBox from "../common/InputBox";
 import Button from "../common/Button";
-
 import { createUser } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
 import { toastError, toastSuccess } from "../../utilities/toast";
@@ -34,7 +32,6 @@ const PASSWORD_RULES = {
 
 const AddUserForm = ({ onSuccess, onCancel }) => {
   const { user: currentUser } = useAuth();
-
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
@@ -53,19 +50,15 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
       email: "",
       password: "",
     };
-
     if (!form.name.trim()) {
       validationErrors.name = "Full name is required.";
     }
-
     if (!form.email.trim()) {
       validationErrors.email = "Email is required.";
     } else if (!EMAIL_REGEX.test(form.email)) {
       validationErrors.email = "Enter a valid email address.";
     }
-
     const password = form.password;
-
     if (password.length === 0) {
       validationErrors.password = "Password is required.";
     } else if (password.length < 6) {
@@ -84,20 +77,16 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
       validationErrors.password =
         "Password must contain at least one special character (#, @ or $).";
     }
-
     setErrors(validationErrors);
-
     return !Object.values(validationErrors).some(Boolean);
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
-
     setErrors((prev) => ({
       ...prev,
       [name]: "",
@@ -106,30 +95,21 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!validate()) {
       return;
     }
-
     try {
       setLoading(true);
-
       const token = getToken();
-
       await createUser(form, token);
-
       toastSuccess("User Created", "User registered successfully.");
-
       setForm(initialForm);
       setErrors(initialErrors);
-
       onSuccess?.();
     } catch (error) {
       const message =
         error?.response?.data?.message || "Unable to create user.";
-
       const lowerMessage = message.toLowerCase();
-
       if (lowerMessage.includes("email")) {
         setErrors((prev) => ({
           ...prev,
@@ -137,7 +117,6 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         }));
         return;
       }
-
       if (lowerMessage.includes("password")) {
         setErrors((prev) => ({
           ...prev,
@@ -145,7 +124,6 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         }));
         return;
       }
-
       if (lowerMessage.includes("name")) {
         setErrors((prev) => ({
           ...prev,
@@ -153,7 +131,6 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         }));
         return;
       }
-
       toastError("Failed", message);
     } finally {
       setLoading(false);
@@ -161,18 +138,17 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <InputBox
         label="Full Name"
         name="name"
         value={form.name}
         onChange={handleChange}
         placeholder="Enter full name"
-        leftIcon={<User size={18} />}
+        leftIcon={<User size={16} />}
         error={errors.name}
         required
       />
-
       <InputBox
         label="Email"
         name="email"
@@ -180,11 +156,10 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         value={form.email}
         onChange={handleChange}
         placeholder="Enter email"
-        leftIcon={<Mail size={18} />}
+        leftIcon={<Mail size={16} />}
         error={errors.email}
         required
       />
-
       <InputBox
         label="Password"
         name="password"
@@ -192,39 +167,23 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         value={form.password}
         onChange={handleChange}
         placeholder="Enter password"
-        leftIcon={<Lock size={18} />}
+        leftIcon={<Lock size={16} />}
         error={errors.password}
         required
       />
-
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Role</label>
-
         <select
           name="role"
           value={form.role}
           onChange={handleChange}
-          className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            bg-white
-            px-4
-            py-2.5
-            outline-none
-            transition
-            focus:border-blue-500
-            focus:ring-2
-            focus:ring-blue-200
-          "
+          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
         >
           <option value="user">{ROLE_LABELS.user}</option>
           {canAssignAdmin && <option value="admin">{ROLE_LABELS.admin}</option>}
         </select>
       </div>
-
-      <div className="flex justify-end gap-3 pt-2">
+      <div className="flex justify-end gap-2 pt-1">
         <Button
           type="button"
           variant="secondary"
@@ -233,7 +192,6 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         >
           Cancel
         </Button>
-
         <Button
           type="submit"
           variant="primary"
