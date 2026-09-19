@@ -6,17 +6,16 @@ export const createUser = async (userData, token) => {
       "x-auth-token": token,
     },
   });
-
   return data;
 };
 
-export const getUsers = async (token) => {
+export const getUsers = async (token, companyId) => {
   const { data } = await api.get("/users", {
     headers: {
       "x-auth-token": token,
     },
+    params: companyId ? { companyId } : {},
   });
-
   return data;
 };
 
@@ -30,7 +29,6 @@ export const updateUserStatus = async (userId, isActive, token) => {
       },
     },
   );
-
   return data;
 };
 
@@ -44,7 +42,6 @@ export const updateUserRole = async (userId, role, token) => {
       },
     },
   );
-
   return data;
 };
 
@@ -58,7 +55,6 @@ export const updateUserName = async (userId, name, token) => {
       },
     },
   );
-
   return data;
 };
 
@@ -68,7 +64,6 @@ export const deleteUser = async (userId, token) => {
       "x-auth-token": token,
     },
   });
-
   return data;
 };
 
@@ -76,6 +71,22 @@ export const getMentionableUsers = async (token) => {
   const { data } = await api.get("/users/mentionable", {
     headers: { "x-auth-token": token },
   });
+  return data;
+};
 
+export const changeOwnPassword = async (
+  currentPassword,
+  newPassword,
+  token,
+) => {
+  const { data } = await api.patch(
+    "/users/me/password",
+    { currentPassword, newPassword },
+    {
+      headers: {
+        "x-auth-token": token,
+      },
+    },
+  );
   return data;
 };

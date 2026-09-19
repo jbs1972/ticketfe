@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Paperclip,
-  Pen,
-  Trash2,
-  AtSign,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
+import { Paperclip, Pen, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { toastError, toastSuccess } from "../../utilities/toast";
 import {
   getErrorMessage,
@@ -15,7 +8,8 @@ import {
   formatDateTime,
   extractMentionedUserIds,
 } from "../../utilities/ticketHelpers";
-import { getMentionableUsers } from "../../services/user.service";
+import { getTicketById } from "../../services/ticket.service";
+import { getUsers, getMentionableUsers } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
 import socket from "../../services/socket";
 import useAuth from "../../hooks/useAuth";
@@ -49,8 +43,7 @@ const CommentsSection = ({ ticketCode }) => {
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
   const [highlightedId, setHighlightedId] = useState(null);
-  const [mentionUsers, setMentionUsers] = useState([]);
-  const [myTagIndex, setMyTagIndex] = useState(-1);
+  const [taggableUsers, setTaggableUsers] = useState([]);
   const [scrollButtonDirection, setScrollButtonDirection] = useState(null);
   const hashProcessedRef = useRef(false);
   const scrollContainerRef = useRef(null);
@@ -67,13 +60,8 @@ const CommentsSection = ({ ticketCode }) => {
   const newCommentDropzone = useFileDropzone();
   const editDropzone = useFileDropzone();
 
-  // Comments (in this ticket) that mention the logged-in user, in display order
-  const myTaggedComments = comments.filter((c) =>
-    c.mentions?.some((id) => String(id) === String(user?._id)),
-  );
-
-  // Users eligible for @mention: everyone except the logged-in user (no self-tagging)
-  const mentionCandidates = mentionUsers.filter(
+  // Tag targets: users allocated to this ticket + company admins (never self)
+  const mentionCandidates = taggableUsers.filter(
     (u) => String(u._id) !== String(user?._id),
   );
 
@@ -113,12 +101,41 @@ const CommentsSection = ({ ticketCode }) => {
   }, [ticketCode]);
 
   useEffect(() => {
-    getMentionableUsers(getToken())
-      .then((response) => setMentionUsers(response.data || []))
-      .catch(() => setMentionUsers([]));
-  }, []);
+    const loadTaggable = async () => {
+      let allocated = [];
+      try {
+        const response = await getTicketById(ticketCode);
+        allocated = response.data?.allocatedUsers || [];
+        // Allocated users are always taggable, even if the admins fetch fails
+        setTaggableUsers(allocated);
 
-  // Runs ONCE per ticket load to scroll/highlight a comment linked via #comment-<id>.
+        const companyId = response.data?.company;
+        if (!companyId) return;
+
+        let admins = [];
+        try {
+          const usersRes = await getUsers(getToken(), companyId);
+          admins = (usersRes.data || []).filter((u) => u.role === "admin");
+        } catch {
+          // Regular users may not access /users; use the mentionable endpoint
+          try {
+            const mentionRes = await getMentionableUsers(getToken());
+            admins = (mentionRes.data || []).filter((u) => u.role === "admin");
+          } catch {
+            admins = [];
+          }
+        }
+
+        const byId = new Map();
+        [...allocated, ...admins].forEach((u) => byId.set(String(u._id), u));
+        setTaggableUsers(Array.from(byId.values()));
+      } catch {
+        setTaggableUsers(allocated);
+      }
+    };
+    loadTaggable();
+  }, [ticketCode]);
+
   useEffect(() => {
     if (loading || hashProcessedRef.current) return;
     const hash = window.location.hash;
@@ -137,28 +154,12 @@ const CommentsSection = ({ ticketCode }) => {
     }
   }, [loading, comments]);
 
-  const jumpToComment = (commentId) => {
-    const el = document.getElementById(`comment-${commentId}`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setHighlightedId(commentId);
-    setTimeout(() => setHighlightedId(null), 3000);
-  };
-
-  const handleCycleMyTags = () => {
-    if (!myTaggedComments.length) return;
-    const nextIndex = (myTagIndex + 1) % myTaggedComments.length;
-    setMyTagIndex(nextIndex);
-    jumpToComment(myTaggedComments[nextIndex]._id);
-  };
-
-  // Decides which way the jump button points
   const updateScrollButtonDirection = () => {
     const el = scrollContainerRef.current;
     if (!el) return;
     const { scrollTop, scrollHeight, clientHeight } = el;
     if (scrollHeight <= clientHeight + 1) {
-      setScrollButtonDirection(null); // nothing to scroll
+      setScrollButtonDirection(null);
       return;
     }
     const midpoint = (scrollHeight - clientHeight) / 2;
@@ -166,7 +167,6 @@ const CommentsSection = ({ ticketCode }) => {
   };
 
   useEffect(() => {
-    // Deferred one tick so the comment list has painted and scrollHeight is accurate.
     const id = requestAnimationFrame(updateScrollButtonDirection);
     return () => cancelAnimationFrame(id);
   }, [comments, searchResults, loading]);
@@ -319,32 +319,21 @@ const CommentsSection = ({ ticketCode }) => {
   const displayedComments = searchResults !== null ? searchResults : comments;
 
   return (
-    <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-      <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+    <div className="relative flex flex-col rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+      <label className="mb-1 block text-sm font-semibold text-gray-700">
         Comments
       </label>
       <SearchBar
-        className="mb-2"
-        placeholder="Search comments by message, date, attachment or author..."
+        className="mb-1.5 pr-20"
+        placeholder="Search comments..."
         onSearch={handleSearchComments}
       />
-      <div className="mb-1.5 flex items-center gap-2">
-        {myTaggedComments.length > 0 && (
-          <button
-            type="button"
-            onClick={handleCycleMyTags}
-            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50"
-            title="Cycle through comments where you were tagged"
-          >
-            <AtSign size={11} />
-            My tags ({myTaggedComments.length})
-          </button>
-        )}
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-1">
         {scrollButtonDirection && (
           <button
             type="button"
             onClick={handleScrollButtonClick}
-            className="ml-auto flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
             title={
               scrollButtonDirection === "down"
                 ? "Jump to newest comment"
@@ -362,7 +351,7 @@ const CommentsSection = ({ ticketCode }) => {
       <div
         ref={scrollContainerRef}
         onScroll={updateScrollButtonDirection}
-        className="mb-2 max-h-72 flex-1 space-y-1.5 overflow-y-auto"
+        className="mb-2 max-h-60 flex-1 space-y-1 overflow-y-auto"
       >
         {loading || searching ? (
           <p className="text-center text-sm text-gray-500">Loading...</p>
@@ -377,31 +366,31 @@ const CommentsSection = ({ ticketCode }) => {
             <div
               key={comment._id}
               id={`comment-${comment._id}`}
-              className={`rounded-lg border border-gray-200 bg-gray-50 p-2.5 transition-colors ${
+              className={`rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 transition-colors ${
                 highlightedId === comment._id
                   ? "bg-amber-50 ring-2 ring-amber-400"
                   : ""
               }`}
             >
-              <div className="mb-1 flex items-center justify-between">
+              <div className="mb-0.5 flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-semibold text-gray-800">
+                  <span className="text-xs font-semibold text-gray-800">
                     {comment.authorName}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-[11px] text-gray-500">
                     {formatDateTime(comment.createdAt)}
                   </span>
                 </div>
                 {editingId !== comment._id &&
                   comment.authorId === user?._id && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => startEdit(comment)}
                         className="rounded p-0.5 text-blue-600 transition-colors hover:text-blue-700"
                         title="Edit comment"
                       >
-                        <Pen size={12} />
+                        <Pen size={11} />
                       </button>
                       <button
                         type="button"
@@ -410,7 +399,7 @@ const CommentsSection = ({ ticketCode }) => {
                         className="rounded p-0.5 text-red-600 transition-colors hover:text-red-700 disabled:opacity-50"
                         title="Delete comment"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={11} />
                       </button>
                     </div>
                   )}
@@ -446,7 +435,7 @@ const CommentsSection = ({ ticketCode }) => {
                     </button>
                     <button
                       type="button"
-                      onClick={cancelEdit}
+                      onClick={() => cancelEdit}
                       className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100"
                     >
                       Cancel
@@ -455,20 +444,20 @@ const CommentsSection = ({ ticketCode }) => {
                 </div>
               ) : isRichTextHtml(comment.message) ? (
                 <div
-                  className="break-words text-sm text-gray-800 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+                  className="break-words text-xs text-gray-800 [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4"
                   dangerouslySetInnerHTML={{ __html: comment.message }}
                 />
               ) : (
-                <p className="whitespace-pre-wrap break-words text-sm text-gray-800">
+                <p className="whitespace-pre-wrap break-words text-xs text-gray-800">
                   {comment.message}
                 </p>
               )}
               {comment.attachments?.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-1 flex flex-wrap gap-1">
                   {comment.attachments.map((file) => (
                     <div
                       key={file.fileName}
-                      className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                      className="flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
                     >
                       <button
                         type="button"
@@ -477,7 +466,7 @@ const CommentsSection = ({ ticketCode }) => {
                         }
                         className="flex max-w-[180px] items-center gap-1 transition-colors hover:text-gray-900"
                       >
-                        <Paperclip size={10} className="shrink-0" />
+                        <Paperclip size={9} className="shrink-0" />
                         <span className="truncate">{file.originalName}</span>
                       </button>
                       {comment.authorId === user?._id && (
@@ -491,7 +480,7 @@ const CommentsSection = ({ ticketCode }) => {
                           className="ml-1 text-red-500 transition-colors hover:text-red-700 disabled:opacity-50"
                           title="Delete attachment"
                         >
-                          <Trash2 size={9} />
+                          <Trash2 size={8} />
                         </button>
                       )}
                     </div>
@@ -504,7 +493,7 @@ const CommentsSection = ({ ticketCode }) => {
       </div>
       <form
         onSubmit={handlePostComment}
-        className="space-y-2 border-t border-gray-200 pt-2.5"
+        className="space-y-1.5 border-t border-gray-200 pt-2"
       >
         <RichTextEditor
           value={newMessage}

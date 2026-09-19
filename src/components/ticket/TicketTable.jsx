@@ -7,6 +7,7 @@ import {
   Paperclip,
   MessageCircle,
   AtSign,
+  UserPlus,
 } from "lucide-react";
 import Table from "../common/Table";
 import { formatDateTime } from "../../utilities/ticketHelpers";
@@ -21,7 +22,9 @@ const TicketTable = ({
   onView,
   onEdit,
   onDelete,
+  onAllocate,
   statuses = [],
+  emptyMessage = "No tickets found",
 }) => {
   const navigate = useNavigate();
   const [mentionsByTicket, setMentionsByTicket] = useState({});
@@ -68,33 +71,22 @@ const TicketTable = ({
               title={`${ticket.attachments.length} attachment(s)`}
             />
           )}
+          {mentionsByTicket[ticket.ticketCode]?.length > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  `/tickets/${ticket.ticketCode}#comment-${mentionsByTicket[ticket.ticketCode][0]}`,
+                )
+              }
+              className="shrink-0 text-amber-600 transition-colors hover:text-amber-700"
+              title="You were mentioned in this ticket"
+            >
+              <AtSign size={12} />
+            </button>
+          )}
         </div>
       ),
-    },
-    {
-      key: "mentions",
-      header: "",
-      headerClassName: "text-center",
-      cellClassName: "text-center",
-      width: "w-10",
-      render: (ticket) => {
-        const taggedCommentIds = mentionsByTicket[ticket.ticketCode];
-        if (!taggedCommentIds?.length) return null;
-        return (
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                `/tickets/${ticket.ticketCode}#comment-${taggedCommentIds[0]}`,
-              )
-            }
-            className="text-amber-600 transition-colors hover:text-amber-700"
-            title="You were mentioned in this ticket"
-          >
-            <AtSign size={13} />
-          </button>
-        );
-      },
     },
     {
       key: "status",
@@ -103,13 +95,25 @@ const TicketTable = ({
       cellClassName: "text-center",
       render: (ticket) => {
         const statusConfig = statuses.find((s) => s.name === ticket.status);
-        const color = statusConfig?.color || ticket.statusColor || "#94a3b8";
+        const color = statusConfig?.color || "#94a3b8";
         return (
           <span className="text-xs font-medium" style={{ color }}>
             {ticket.status}
           </span>
         );
       },
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      width: "w-24",
+      render: (ticket) => (
+        <span className="text-xs text-gray-600">
+          {ticket.priority || "Normal"}
+        </span>
+      ),
     },
     {
       key: "createdAt",
@@ -136,6 +140,30 @@ const TicketTable = ({
         </div>
       ),
     },
+    ...(isAdmin
+      ? [
+          {
+            key: "allocate",
+            header: "Allocate",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            width: "w-24",
+            render: (ticket) => (
+              <button
+                onClick={() => onAllocate(ticket)}
+                className="rounded-md p-1.5 text-teal-600 transition-colors hover:bg-teal-50 hover:text-teal-700"
+                title={
+                  ticket.allocatedUsers?.length
+                    ? "Update allocation"
+                    : "Allocate"
+                }
+              >
+                <UserPlus size={14} />
+              </button>
+            ),
+          },
+        ]
+      : []),
     {
       key: "view",
       header: "View",
@@ -195,7 +223,7 @@ const TicketTable = ({
       columns={columns}
       data={tickets}
       loading={loading}
-      emptyMessage="No tickets found"
+      emptyMessage={emptyMessage}
     />
   );
 };

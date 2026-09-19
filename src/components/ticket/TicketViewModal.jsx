@@ -13,11 +13,15 @@ const TicketViewModal = ({
   onDownload,
   onView,
   canEdit,
+  statuses = [],
 }) => {
   const navigate = useNavigate();
   useEscapeKey(open, onClose);
 
   if (!open || !ticket) return null;
+
+  const statusColor =
+    statuses.find((s) => s.name === ticket.status)?.color || "#64748b";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
@@ -32,6 +36,27 @@ const TicketViewModal = ({
             </label>
             <div className="break-words rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
               {ticket.subject}
+            </div>
+          </div>
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Status
+              </label>
+              <div
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium"
+                style={{ color: statusColor }}
+              >
+                {ticket.status}
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Priority
+              </label>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                {ticket.priority || "Normal"}
+              </div>
             </div>
           </div>
           <div className="mb-3">

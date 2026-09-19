@@ -1,7 +1,8 @@
 import Modal from "../common/Modal";
 import AddUserForm from "../user/AddUserForm";
 
-const AddUserModal = ({ open, onClose }) => {
+
+const AddUserModal = ({ open, onClose, companyId }) => {
   const handleSuccess = () => {
     onClose?.();
   };
@@ -21,6 +22,7 @@ const AddUserModal = ({ open, onClose }) => {
       */}
       <AddUserForm
         key={open ? "open" : "closed"}
+        companyId={companyId}
         onSuccess={handleSuccess}
         onCancel={onClose}
       />

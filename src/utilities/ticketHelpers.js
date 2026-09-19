@@ -95,3 +95,34 @@ export const extractMentionedUserIds = (html) => {
   const matches = [...html.matchAll(/data-user-id="([^"]+)"/g)];
   return [...new Set(matches.map((m) => m[1]))];
 };
+
+// Attach to a <form> (or wrapping container) via onKeyDown.
+// Moves focus to next focusable field on Enter; submits on the last field.
+// Pass onSubmit for containers that aren't real <form> elements (e.g. TicketFormModal).
+export const handleEnterNavigation = (e, onSubmit) => {
+  if (e.key !== "Enter") return;
+
+  const tag = e.target.tagName;
+  if (tag === "TEXTAREA" || tag === "BUTTON") return;
+
+  e.preventDefault();
+
+  const container = e.currentTarget;
+  const focusable = Array.from(
+    container.querySelectorAll(
+      "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])",
+    ),
+  );
+  const index = focusable.indexOf(e.target);
+
+  if (index > -1 && index < focusable.length - 1) {
+    focusable[index + 1].focus();
+    return;
+  }
+
+  if (typeof container.requestSubmit === "function") {
+    container.requestSubmit();
+  } else if (onSubmit) {
+    onSubmit();
+  }
+};

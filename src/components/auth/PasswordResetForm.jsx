@@ -2,10 +2,15 @@ import { Mail, Send } from "lucide-react";
 
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
+import { handleEnterNavigation } from "../../utilities/ticketHelpers";
 
 const PasswordResetForm = ({ email, loading, onChange, onSubmit }) => {
   return (
-    <form className="space-y-5" onSubmit={onSubmit}>
+    <form
+      className="space-y-5"
+      onSubmit={onSubmit}
+      onKeyDown={handleEnterNavigation}
+    >
       <InputBox
         label="Email Address"
         type="email"

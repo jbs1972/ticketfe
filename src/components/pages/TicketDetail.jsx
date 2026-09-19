@@ -10,6 +10,7 @@ import {
   deleteAttachment as deleteAttachmentService,
 } from "../../services/ticket.service";
 import { getTicketStatuses } from "../../services/ticketStatus.service";
+import { getTicketPriorities } from "../../services/ticketPriority.service";
 import useAuth from "../../hooks/useAuth";
 import useAttachmentActions from "../../hooks/useAttachmentActions";
 import { toastError, toastSuccess } from "../../utilities/toast";
@@ -35,7 +36,7 @@ const TicketDetail = () => {
   const { ticketCode } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
   const {
     handleDownloadAttachment,
     handleDownloadMultiple,
@@ -45,7 +46,9 @@ const TicketDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [statuses, setStatuses] = useState([]);
+  const [priorities, setPriorities] = useState([]);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [prioritySaving, setPrioritySaving] = useState(false);
   const [refreshingPage, setRefreshingPage] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(false);
   // Inline edit state (ticket side)
@@ -69,28 +72,33 @@ const TicketDetail = () => {
       setNotFound(false);
       const response = await getTicketById(ticketCode);
       setTicket(response.data);
-      return true;
+      return response.data;
     } catch (error) {
       setNotFound(true);
       toastError("Load Failed", getErrorMessage(error, "Ticket not found."));
-      return false;
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStatuses = async () => {
-    try {
-      const response = await getTicketStatuses();
-      setStatuses(response.data || []);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
-    fetchTicket();
-    fetchStatuses();
+    const load = async () => {
+      const data = await fetchTicket();
+      if (!data) return;
+      try {
+        const [sRes, pRes] = await Promise.all([
+          getTicketStatuses(data.company),
+          getTicketPriorities(data.company),
+        ]);
+        setStatuses(sRes.data || []);
+        setPriorities(pRes.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketCode]);
 
   useEffect(() => {
@@ -122,6 +130,26 @@ const TicketDetail = () => {
       );
     } finally {
       setStatusSaving(false);
+    }
+  };
+
+  const handlePriorityChange = async (event) => {
+    const newPriority = event.target.value;
+    try {
+      setPrioritySaving(true);
+      await patchTicket(ticketCode, { priority: newPriority });
+      setTicket((prev) => ({ ...prev, priority: newPriority }));
+      toastSuccess(
+        "Priority Updated",
+        `Ticket priority set to ${newPriority}.`,
+      );
+    } catch (error) {
+      toastError(
+        "Update Failed",
+        getErrorMessage(error, "Could not update priority."),
+      );
+    } finally {
+      setPrioritySaving(false);
     }
   };
 
@@ -374,23 +402,55 @@ const TicketDetail = () => {
                   value={ticket.status}
                   onChange={handleStatusChange}
                   disabled={statusSaving}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-200 disabled:opacity-60"
                   style={{
                     borderLeft: `4px solid ${currentStatus?.color || "#94a3b8"}`,
                   }}
                 >
                   {statuses.map((s) => (
-                    <option key={s._id} value={s.name}>
+                    <option
+                      key={s._id}
+                      value={s.name}
+                      className="bg-white text-gray-900"
+                    >
                       {s.name}
                     </option>
                   ))}
                 </select>
               ) : (
                 <div
-                  className="rounded-full px-3 py-1 text-center text-sm font-medium text-white"
-                  style={{ backgroundColor: currentStatus?.color || "#94a3b8" }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium"
+                  style={{
+                    borderLeft: `4px solid ${currentStatus?.color || "#94a3b8"}`,
+                    color: currentStatus?.color || "#64748b",
+                  }}
                 >
                   {ticket.status}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className={labelClass}>Priority</label>
+              {isAdmin ? (
+                <select
+                  value={ticket.priority || "Normal"}
+                  onChange={handlePriorityChange}
+                  disabled={prioritySaving}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-200 disabled:opacity-60"
+                >
+                  {priorities.map((p) => (
+                    <option
+                      key={p._id}
+                      value={p.name}
+                      className="bg-white text-gray-900"
+                    >
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className={staticBoxClass}>
+                  {ticket.priority || "Normal"}
                 </div>
               )}
             </div>

@@ -18,7 +18,6 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Reset fields from source user whenever modal opens for a user
   useEffect(() => {
     if (user) {
       setName(user.name);
@@ -29,9 +28,12 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
 
   if (!user) return null;
 
+  const isSuperAdminTarget = user.role === "superadmin";
+
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSuperAdminTarget) return;
+
     try {
       setSaving(true);
       const updates = {};
@@ -72,6 +74,7 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter full name"
           required
+          disabled={isSuperAdminTarget}
         />
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">
@@ -80,7 +83,8 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            disabled={isSuperAdminTarget}
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="user">{ROLE_LABELS.user}</option>
             <option value="admin">{ROLE_LABELS.admin}</option>
@@ -93,9 +97,10 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
           <button
             type="button"
             onClick={() => setIsActive((prev) => !prev)}
+            disabled={isSuperAdminTarget}
             className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               isActive ? "bg-green-600" : "bg-gray-300"
-            }`}
+            } ${isSuperAdminTarget ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -104,6 +109,14 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
             />
           </button>
         </div>
+
+        {isSuperAdminTarget && (
+          <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+            Super Admin account details cannot be modified. Only password
+            changes are allowed via the profile recovery flow.
+          </p>
+        )}
+
         <div className="flex justify-end gap-2 border-t border-gray-200 pt-3">
           <Button
             type="button"
@@ -118,6 +131,7 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
             variant="primary"
             loading={saving}
             loadingText="Saving..."
+            disabled={isSuperAdminTarget}
           >
             Update
           </Button>

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { LockKeyhole, KeyRound } from "lucide-react";
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
+import { handleEnterNavigation } from "../../utilities/ticketHelpers";
 
 const PASSWORD_RULES = {
   minLength: 6,
@@ -73,7 +74,12 @@ const NewPasswordForm = ({ formData, loading = false, onChange, onSubmit }) => {
   };
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="space-y-5">
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      className="space-y-5"
+      onKeyDown={handleEnterNavigation}
+    >
       <div className="text-center">
         <KeyRound size={40} className="mx-auto mb-2 text-blue-600" />
         <p className="text-sm text-gray-500">

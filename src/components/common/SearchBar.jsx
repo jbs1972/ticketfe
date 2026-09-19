@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Search, X } from "lucide-react";
 
 const fieldClass =
-  "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200";
+  "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-800 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-200";
 
 const SearchBar = ({
   onSearch,
   placeholder = "Search...",
   showStatus = false,
   statusOptions = [],
-  className = "mb-4",
+  className = "mb-3",
 }) => {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -37,7 +37,7 @@ const SearchBar = ({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm ${className}`}
+      className={`flex flex-wrap items-center gap-1.5 rounded-md border border-gray-200 bg-white p-2 shadow-sm ${className}`}
     >
       <input
         type="text"
@@ -45,8 +45,9 @@ const SearchBar = ({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={`${fieldClass} min-w-[200px] flex-1`}
+        className={`${fieldClass} min-w-[180px] flex-1`}
       />
+
       {showStatus && (
         <select
           value={status}
@@ -61,33 +62,38 @@ const SearchBar = ({
           ))}
         </select>
       )}
+
       <input
         type="date"
         value={from}
         onChange={(e) => setFrom(e.target.value)}
         className={fieldClass}
       />
-      <span className="text-sm text-gray-500">to</span>
+
+      <span className="px-0.5 text-xs text-gray-400">to</span>
+
       <input
         type="date"
         value={to}
         onChange={(e) => setTo(e.target.value)}
         className={fieldClass}
       />
+
       <button
         type="button"
         onClick={triggerSearch}
-        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-blue-700"
+        className="flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
       >
-        <Search size={14} />
+        <Search size={12} />
         Search
       </button>
+
       <button
         type="button"
         onClick={handleClear}
-        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors duration-200 hover:bg-gray-100"
+        className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100"
       >
-        <X size={14} />
+        <X size={12} />
         Clear
       </button>
     </div>

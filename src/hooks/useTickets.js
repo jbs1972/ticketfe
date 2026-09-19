@@ -18,7 +18,10 @@ import {
 
 const FALLBACK_POLL_INTERVAL_MS = 300000;
 
-const useTickets = () => {
+// scopeParams: { companyId?, projectId? } - which tickets to fetch.
+// enabled: when false, the hook holds an empty list and skips fetching
+// entirely (e.g. a User who hasn't picked a project yet).
+const useTickets = (scopeParams = {}, enabled = true) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pendingUpdateIds, setPendingUpdateIds] = useState([]);
@@ -26,6 +29,8 @@ const useTickets = () => {
 
   const ticketsRef = useRef([]);
   const pendingUpdateRef = useRef([]);
+  const scopeRef = useRef(scopeParams);
+  const enabledRef = useRef(enabled);
 
   useEffect(() => {
     ticketsRef.current = tickets;
@@ -35,11 +40,26 @@ const useTickets = () => {
     pendingUpdateRef.current = pendingUpdateIds;
   }, [pendingUpdateIds]);
 
+  useEffect(() => {
+    scopeRef.current = scopeParams;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeParams.companyId, scopeParams.projectId]);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
   const fetchTickets = async (silent = false) => {
+    if (!enabledRef.current) {
+      setTickets([]);
+      setPendingUpdateIds([]);
+      return;
+    }
+
     try {
       if (!silent) setLoading(true);
 
-      const response = await getTickets();
+      const response = await getTickets(scopeRef.current);
       const newTickets = response.data || [];
 
       if (silent) {
@@ -92,7 +112,8 @@ const useTickets = () => {
       socket.off("ticket:changed", handleTicketChanged);
       clearInterval(intervalId);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeParams.companyId, scopeParams.projectId, enabled]);
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
@@ -100,7 +121,6 @@ const useTickets = () => {
     setRefreshing(false);
   };
 
-  // ticketCode is used for all lookups now — Mongo _id stays internal only
   const refreshTicketDetails = async (ticketCode) => {
     try {
       setRefreshing(true);

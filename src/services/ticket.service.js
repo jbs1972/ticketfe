@@ -7,8 +7,11 @@ const getHeaders = () => ({
   },
 });
 
-export const getTickets = async () => {
-  const { data } = await api.get("/tickets", getHeaders());
+export const getTickets = async (params) => {
+  const { data } = await api.get("/tickets", {
+    headers: { "x-auth-token": getToken() },
+    params: params || {},
+  });
   return data;
 };
 
@@ -108,5 +111,14 @@ export const searchTickets = async (params) => {
     params,
   });
 
+  return data;
+};
+
+export const allocateTicket = async (ticketCode, users) => {
+  const { data } = await api.put(
+    `/tickets/${ticketCode}/allocate`,
+    { users },
+    getHeaders(),
+  );
   return data;
 };

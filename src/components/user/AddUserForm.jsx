@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
 import InputBox from "../common/InputBox";
 import Button from "../common/Button";
@@ -7,6 +7,7 @@ import { getToken } from "../../utilities/tokenStorage";
 import { toastError, toastSuccess } from "../../utilities/toast";
 import useAuth from "../../hooks/useAuth";
 import { ROLE_LABELS } from "../../utilities/constants";
+import { handleEnterNavigation } from "../../utilities/ticketHelpers";
 
 const initialForm = {
   name: "",
@@ -19,6 +20,7 @@ const initialErrors = {
   name: "",
   email: "",
   password: "",
+  company: "",
 };
 
 const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -30,25 +32,23 @@ const PASSWORD_RULES = {
   special: /[#@$]/,
 };
 
-const AddUserForm = ({ onSuccess, onCancel }) => {
+const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
   const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === "superadmin";
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
 
-  // Any Admin can assign Admin role
-  const canAssignAdmin = currentUser?.role === "admin";
-
-  useEffect(() => {
-    setForm(initialForm);
-    setErrors(initialErrors);
-  }, []);
+  // Both Admin and Super Admin can assign Admin role
+  const canAssignAdmin =
+    currentUser?.role === "admin" || currentUser?.role === "superadmin";
 
   const validate = () => {
     const validationErrors = {
       name: "",
       email: "",
       password: "",
+      company: "",
     };
     if (!form.name.trim()) {
       validationErrors.name = "Full name is required.";
@@ -77,6 +77,9 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
       validationErrors.password =
         "Password must contain at least one special character (#, @ or $).";
     }
+    if (isSuperAdmin && !companyId) {
+      validationErrors.company = "Select a company on the Users page first.";
+    }
     setErrors(validationErrors);
     return !Object.values(validationErrors).some(Boolean);
   };
@@ -101,7 +104,11 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
     try {
       setLoading(true);
       const token = getToken();
-      await createUser(form, token);
+      const payload = { ...form };
+      if (isSuperAdmin) {
+        payload.company = companyId;
+      }
+      await createUser(payload, token);
       toastSuccess("User Created", "User registered successfully.");
       setForm(initialForm);
       setErrors(initialErrors);
@@ -131,6 +138,13 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
         }));
         return;
       }
+      if (lowerMessage.includes("company")) {
+        setErrors((prev) => ({
+          ...prev,
+          company: message,
+        }));
+        return;
+      }
       toastError("Failed", message);
     } finally {
       setLoading(false);
@@ -138,7 +152,14 @@ const AddUserForm = ({ onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+      onKeyDown={handleEnterNavigation}
+    >
+      {isSuperAdmin && errors.company && (
+        <p className="text-xs text-red-600">{errors.company}</p>
+      )}
       <InputBox
         label="Full Name"
         name="name"

@@ -21,6 +21,8 @@ import TicketDetail from "./components/pages/TicketDetail";
 import BackendGate from "./components/common/BackendGate";
 import EnvBadge from "./components/common/EnvBadge";
 import Configure from "./components/pages/Configure";
+import Companies from "./components/pages/Companies";
+import Projects from "./components/pages/Projects";
 
 const AppLayout = () => {
   return (
@@ -75,7 +77,7 @@ const appRouter = createBrowserRouter([
       {
         path: "users",
         element: (
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
             <Users />
           </ProtectedRoute>
         ),
@@ -83,8 +85,24 @@ const appRouter = createBrowserRouter([
       {
         path: "configure",
         element: (
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
             <Configure />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "companies",
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <Companies />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "projects",
+        element: (
+          <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+            <Projects />
           </ProtectedRoute>
         ),
       },

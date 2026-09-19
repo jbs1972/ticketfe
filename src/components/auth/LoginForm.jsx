@@ -10,6 +10,27 @@ import {
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
 
+// Feature 6: Enter moves focus to the next logical field.
+// On the last field, focus jumps to the submit button; pressing
+// Enter there performs the default submit.
+const handleEnterNavigation = (event) => {
+  if (event.key !== "Enter") return;
+  if (event.target.tagName === "BUTTON") return;
+
+  const fields = Array.from(event.currentTarget.elements).filter(
+    (el) =>
+      !el.disabled &&
+      el.offsetParent !== null &&
+      (el.tagName !== "BUTTON" || el.type === "submit"),
+  );
+
+  const index = fields.indexOf(event.target);
+  if (index === -1 || index === fields.length - 1) return;
+
+  event.preventDefault();
+  fields[index + 1].focus();
+};
+
 const LoginForm = ({
   formData,
   loading,
@@ -21,7 +42,11 @@ const LoginForm = ({
   onDismissInactive,
 }) => {
   return (
-    <form className="space-y-5" onSubmit={onSubmit}>
+    <form
+      className="space-y-5"
+      onSubmit={onSubmit}
+      onKeyDown={handleEnterNavigation}
+    >
       {inactiveAccount && (
         <div className="relative flex items-start gap-3 rounded-lg border-l-4 border-amber-400 bg-amber-50 px-4 py-3">
           <AlertTriangle

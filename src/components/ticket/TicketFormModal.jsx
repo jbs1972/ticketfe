@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import AttachmentsList from "./AttachmentsList";
 import FileDropzone from "../common/FileDropzone";
@@ -7,21 +7,32 @@ import useEscapeKey from "../../hooks/useEscapeKey";
 import useFileDropzone from "../../hooks/useFileDropzone";
 import RichTextEditor from "../common/RichTextEditor";
 import Button from "../common/Button";
-import { isEmptyRichText } from "../../utilities/ticketHelpers";
+import { getAllProjects } from "../../services/project.service";
+import { getAllCompanies } from "../../services/company.service";
+import { setTicketStatus } from "../../services/ticket.service";
+import { toastError } from "../../utilities/toast";
+import {
+  isEmptyRichText,
+  getErrorMessage,
+  handleEnterNavigation,
+} from "../../utilities/ticketHelpers";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
 const fieldClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 read-only:cursor-not-allowed read-only:bg-gray-100";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200";
 
 const TicketFormModal = ({
   editMode,
   ticketCode,
   isAdmin,
+  role,
   initialSubject,
   initialDescription,
   initialAttachments,
   initialStatus,
+  initialPriority,
   statuses,
+  priorities,
   hasPendingUpdate,
   refreshing,
   refreshTicketDetails,
@@ -33,23 +44,72 @@ const TicketFormModal = ({
   onDownloadMultiple,
   onClose,
 }) => {
+  const isSuperAdmin = role === "superadmin";
+
   const [formData, setFormData] = useState({
     subject: initialSubject,
     description: initialDescription,
     status: initialStatus || "",
+    priority: initialPriority || "Normal",
   });
   const [errors, setErrors] = useState({});
   const [currentAttachments, setCurrentAttachments] = useState(
     initialAttachments || [],
   );
   const [attachmentsToDelete, setAttachmentsToDelete] = useState([]);
-  const [selectedForDownload, setSelectedForDownload] = useState([]);
   const [deleteAttachmentConfirm, setDeleteAttachmentConfirm] = useState({
     open: false,
     fileName: null,
   });
 
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
   useEscapeKey(true, onClose);
+
+  useEffect(() => {
+    if (editMode) return;
+
+    if (isSuperAdmin) {
+      getAllCompanies()
+        .then((res) => setCompanies(res.data || []))
+        .catch(() =>
+          toastError("Error", "Failed to load companies for selection."),
+        );
+    } else {
+      setLoadingProjects(true);
+      getAllProjects()
+        .then((res) => setProjects(res.data || []))
+        .catch(() =>
+          toastError("Error", "Failed to load projects for selection."),
+        )
+        .finally(() => setLoadingProjects(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || editMode) return;
+
+    setSelectedProject("");
+
+    if (!selectedCompany) {
+      setProjects([]);
+      return;
+    }
+
+    setLoadingProjects(true);
+    getAllProjects(selectedCompany)
+      .then((res) => setProjects(res.data || []))
+      .catch(() =>
+        toastError("Error", "Failed to load projects for this company."),
+      )
+      .finally(() => setLoadingProjects(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompany]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,12 +130,20 @@ const TicketFormModal = ({
         subject: updated.subject,
         description: updated.description,
         status: updated.status,
+        priority: updated.priority || "Normal",
       });
       setCurrentAttachments(updated.attachments || []);
       setAttachmentsToDelete([]);
-      setSelectedForDownload([]);
     }
   };
+
+  const statusOptions = isAdmin
+    ? statuses
+    : currentIndex > -1
+      ? nextStatus
+        ? [statuses[currentIndex], nextStatus]
+        : [statuses[currentIndex]]
+      : [];
 
   const handleSave = async () => {
     const validationErrors = {};
@@ -85,14 +153,38 @@ const TicketFormModal = ({
     if (isEmptyRichText(formData.description)) {
       validationErrors.description = "Description is required.";
     }
+    if (!editMode && !selectedProject) {
+      validationErrors.project = "Please select a project.";
+    }
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
       return;
     }
-    const payload =
-      isAdmin && editMode
-        ? formData
-        : { subject: formData.subject, description: formData.description };
+
+    const { status: formStatus, ...restForm } = formData;
+
+    if (editMode && isAdmin && formStatus && formStatus !== initialStatus) {
+      try {
+        await setTicketStatus(ticketCode, formStatus);
+      } catch (error) {
+        toastError(
+          "Status Change Failed",
+          getErrorMessage(error, "Could not update the status."),
+        );
+        return;
+      }
+    }
+
+    const payload = editMode
+      ? isAdmin
+        ? restForm
+        : { subject: formData.subject, description: formData.description }
+      : {
+          subject: formData.subject,
+          description: formData.description,
+          project: selectedProject,
+          priority: formData.priority,
+        };
     const success = editMode
       ? await updateTicket(
           ticketCode,
@@ -105,14 +197,6 @@ const TicketFormModal = ({
     if (success) {
       onClose();
     }
-  };
-
-  const toggleSelectForDownload = (fileName) => {
-    setSelectedForDownload((prev) =>
-      prev.includes(fileName)
-        ? prev.filter((f) => f !== fileName)
-        : [...prev, fileName],
-    );
   };
 
   const requestDeleteAttachment = (fileName) => {
@@ -133,7 +217,6 @@ const TicketFormModal = ({
     setCurrentAttachments((prev) =>
       prev.filter((attachment) => attachment.fileName !== fileName),
     );
-    setSelectedForDownload((prev) => prev.filter((name) => name !== fileName));
     setDeleteAttachmentConfirm({
       open: false,
       fileName: null,
@@ -160,7 +243,10 @@ const TicketFormModal = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
         <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-scaleIn">
-          <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div
+            className="flex-1 overflow-y-auto px-5 py-4"
+            onKeyDown={(e) => handleEnterNavigation(e, handleSave)}
+          >
             <h3 className="mb-4 text-base font-semibold text-gray-900">
               {editMode ? "Update Ticket" : "Create Ticket"}
             </h3>
@@ -182,6 +268,62 @@ const TicketFormModal = ({
               </div>
             )}
             <div className="space-y-4">
+              {!editMode && isSuperAdmin && (
+                <div>
+                  <label className={labelClass}>Company</label>
+                  <select
+                    value={selectedCompany}
+                    onChange={(e) => setSelectedCompany(e.target.value)}
+                    className={`${fieldClass} cursor-pointer`}
+                  >
+                    <option value="">Select company...</option>
+                    {companies.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {!editMode && (
+                <div>
+                  <label className={labelClass}>Project</label>
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => {
+                      setSelectedProject(e.target.value);
+                      setErrors((prev) => ({ ...prev, project: "" }));
+                    }}
+                    disabled={
+                      loadingProjects || (isSuperAdmin && !selectedCompany)
+                    }
+                    className={`${fieldClass} cursor-pointer ${
+                      errors.project ? "border-red-500" : ""
+                    }`}
+                  >
+                    <option value="">
+                      {isSuperAdmin && !selectedCompany
+                        ? "Select a company first"
+                        : "Select project..."}
+                    </option>
+                    {projects.map((p) => (
+                      <option
+                        key={p._id}
+                        value={p._id}
+                        disabled={!isAdmin && !p.isActive}
+                      >
+                        {p.name}
+                        {!p.isActive ? " (Frozen)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.project && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.project}
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
                 <label className={labelClass}>Subject</label>
                 <input
@@ -191,8 +333,10 @@ const TicketFormModal = ({
                   onChange={handleChange}
                   readOnly={!isAdmin && editMode}
                   className={`${fieldClass} ${
-                    errors.subject ? "border-red-500" : ""
-                  }`}
+                    !isAdmin && editMode
+                      ? "cursor-not-allowed !bg-gray-100"
+                      : ""
+                  } ${errors.subject ? "border-red-500" : ""}`}
                 />
                 {errors.subject && (
                   <p className="mt-1 text-xs text-red-600">{errors.subject}</p>
@@ -205,14 +349,39 @@ const TicketFormModal = ({
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className={fieldClass}
+                    className={`${fieldClass} cursor-pointer`}
                     style={{
                       borderLeft: `4px solid ${currentStatusColor || "#94a3b8"}`,
                     }}
                   >
                     {statuses.map((s) => (
-                      <option key={s._id} value={s.name}>
+                      <option
+                        key={s._id}
+                        value={s.name}
+                        className="bg-white text-gray-900"
+                      >
                         {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {isAdmin && priorities?.length > 0 && (
+                <div>
+                  <label className={labelClass}>Priority</label>
+                  <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    className={`${fieldClass} cursor-pointer`}
+                  >
+                    {priorities.map((p) => (
+                      <option
+                        key={p._id}
+                        value={p.name}
+                        className="bg-white text-gray-900"
+                      >
+                        {p.name}
                       </option>
                     ))}
                   </select>
@@ -237,26 +406,9 @@ const TicketFormModal = ({
               {editMode && (
                 <AttachmentsList
                   attachments={currentAttachments}
-                  selectedForDownload={selectedForDownload}
                   isAdmin={isAdmin}
-                  onToggleSelect={toggleSelectForDownload}
-                  onSelectAll={(checked) =>
-                    setSelectedForDownload(
-                      checked
-                        ? currentAttachments.map((file) => file.fileName)
-                        : [],
-                    )
-                  }
                   onView={(file) => onViewAttachment(ticketCode, file)}
                   onDownload={(file) => onDownloadAttachment(ticketCode, file)}
-                  onDownloadSelected={() =>
-                    onDownloadMultiple(
-                      ticketCode,
-                      currentAttachments.filter((file) =>
-                        selectedForDownload.includes(file.fileName),
-                      ),
-                    )
-                  }
                   onDelete={requestDeleteAttachment}
                 />
               )}
@@ -285,7 +437,9 @@ const TicketFormModal = ({
             >
               Cancel
             </Button>
-            <Button onClick={handleSave}>{editMode ? "Update" : "Save"}</Button>
+            <Button onClick={handleSave}>
+              {editMode ? "Update" : "Create"}
+            </Button>
           </div>
         </div>
       </div>

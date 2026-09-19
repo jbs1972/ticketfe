@@ -1,7 +1,6 @@
-import { ROLE_LABELS } from "./utilities/constants";
-import { useEffect, useState } from "react";
+import { ROLE_LABELS, APP_LOGO_URL } from "./utilities/constants";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { APP_LOGO_URL } from "./utilities/constants";
 import UserDropdown from "./components/layout/UserDropdown";
 import ProfileModal from "./components/layout/ProfileModal";
 import ConfirmDialog from "./components/common/ConfirmDialog";
@@ -12,12 +11,19 @@ import socket from "./services/socket";
 
 const PUBLIC_ROUTES = ["/login"];
 
+const CONFIGURE_ITEMS = [
+  { tab: "statuses", label: "Ticket Statuses" },
+  { tab: "priorities", label: "Ticket Priority" },
+];
+
 const Header = () => {
   const { user, isAuthenticated, logoutUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [configureOpen, setConfigureOpen] = useState(false);
+  const configureRef = useRef(null);
 
   useEffect(() => {
     const handleMention = ({ ticketCode, commentId, authorName }) => {
@@ -31,11 +37,23 @@ const Header = () => {
     return () => socket.off("comment:mentioned", handleMention);
   }, [navigate]);
 
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (configureRef.current && !configureRef.current.contains(e.target)) {
+        setConfigureOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname !== "/configure") setConfigureOpen(false);
+  }, [location.pathname]);
+
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
 
-  const handleLogout = () => {
-    setIsLogoutDialogOpen(true);
-  };
+  const handleLogout = () => setIsLogoutDialogOpen(true);
 
   const handleConfirmLogout = async () => {
     setIsLogoutDialogOpen(false);
@@ -48,6 +66,8 @@ const Header = () => {
     `relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
       isActive ? "text-blue-600" : "text-gray-600 hover:text-blue-600"
     }`;
+
+  const configureActive = location.pathname === "/configure";
 
   return (
     <>
@@ -96,7 +116,20 @@ const Header = () => {
                       </span>
                     )}
                   </NavLink>
-                  {user?.role === "admin" && (
+                  {user?.role === "superadmin" && (
+                    <NavLink to="/companies" className={navClass}>
+                      {({ isActive }) => (
+                        <span
+                          className={`border-b-2 pb-1 ${
+                            isActive ? "border-blue-600" : "border-transparent"
+                          }`}
+                        >
+                          Company
+                        </span>
+                      )}
+                    </NavLink>
+                  )}
+                  {(user?.role === "admin" || user?.role === "superadmin") && (
                     <NavLink to="/users" className={navClass}>
                       {({ isActive }) => (
                         <span
@@ -109,18 +142,54 @@ const Header = () => {
                       )}
                     </NavLink>
                   )}
-                  {user?.role === "admin" && (
-                    <NavLink to="/configure" className={navClass}>
+                  {(user?.role === "admin" || user?.role === "superadmin") && (
+                    <NavLink to="/projects" className={navClass}>
                       {({ isActive }) => (
                         <span
                           className={`border-b-2 pb-1 ${
                             isActive ? "border-blue-600" : "border-transparent"
                           }`}
                         >
-                          Configure
+                          Project
                         </span>
                       )}
                     </NavLink>
+                  )}
+                  {(user?.role === "admin" || user?.role === "superadmin") && (
+                    <div className="relative" ref={configureRef}>
+                      <button
+                        type="button"
+                        onClick={() => setConfigureOpen((o) => !o)}
+                        className={navClass({ isActive: configureActive })}
+                      >
+                        <span
+                          className={`border-b-2 pb-1 ${
+                            configureActive
+                              ? "border-blue-600"
+                              : "border-transparent"
+                          }`}
+                        >
+                          Configure ▾
+                        </span>
+                      </button>
+                      {configureOpen && (
+                        <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                          {CONFIGURE_ITEMS.map((item) => (
+                            <button
+                              key={item.tab}
+                              type="button"
+                              onClick={() => {
+                                setConfigureOpen(false);
+                                navigate(`/configure?tab=${item.tab}`);
+                              }}
+                              className="block w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-blue-600"
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                   <NavLink to="/tickets" className={navClass}>
                     {({ isActive }) => (

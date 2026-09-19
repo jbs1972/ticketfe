@@ -18,9 +18,25 @@ const InputBox = ({
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-
   const inputType =
     type === "password" ? (showPassword ? "text" : "password") : type;
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const form = e.target.form;
+      if (form) {
+        const elements = Array.from(form.elements).filter(
+          (el) =>
+            !el.disabled && el.offsetParent !== null && el.tagName !== "BUTTON",
+        );
+        const index = elements.indexOf(e.target);
+        if (index > -1 && index < elements.length - 1) {
+          elements[index + 1].focus();
+        }
+      }
+    }
+  };
 
   return (
     <div className={`space-y-1.5 ${className}`}>
@@ -47,20 +63,12 @@ const InputBox = ({
           placeholder={placeholder}
           onChange={onChange}
           onBlur={onBlur}
+          onKeyDown={handleKeyDown}
           disabled={disabled}
           required={required}
           className={`
-            w-full
-            rounded-lg
-            border
-            bg-white
-            py-2.5
-            text-sm
-            text-gray-900
-            outline-none
-            transition-all
-            duration-200
-            placeholder:text-gray-400
+            w-full rounded-lg border bg-white py-2.5 text-sm text-gray-900 outline-none
+            transition-all duration-200 placeholder:text-gray-400
             ${leftIcon ? "pl-11" : "pl-4"}
             ${type === "password" ? "pr-11" : error ? "pr-10" : "pr-4"}
             ${
@@ -68,8 +76,7 @@ const InputBox = ({
                 ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                 : "border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             }
-            disabled:bg-gray-100
-            disabled:cursor-not-allowed
+            disabled:bg-gray-100 disabled:cursor-not-allowed
           `}
           {...props}
         />
