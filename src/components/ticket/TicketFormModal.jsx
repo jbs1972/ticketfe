@@ -1,20 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import AttachmentsList from "./AttachmentsList";
 import FileDropzone from "../common/FileDropzone";
 import ConfirmDialog from "../common/ConfirmDialog";
-import useEscapeKey from "../../hooks/useEscapeKey";
 import useFileDropzone from "../../hooks/useFileDropzone";
 import RichTextEditor from "../common/RichTextEditor";
 import Button from "../common/Button";
+import {
+  useEscapeKey,
+  useAutoFocus,
+  handleEnterNavigation,
+} from "../../hooks/useKeyboardNavigation";
 import { getAllProjects } from "../../services/project.service";
 import { getAllCompanies } from "../../services/company.service";
+import { getTicketPriorities } from "../../services/ticketPriority.service";
 import { setTicketStatus } from "../../services/ticket.service";
 import { toastError } from "../../utilities/toast";
 import {
   isEmptyRichText,
   getErrorMessage,
-  handleEnterNavigation,
 } from "../../utilities/ticketHelpers";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
@@ -67,8 +71,11 @@ const TicketFormModal = ({
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [modalPriorities, setModalPriorities] = useState(priorities || []);
 
+  const bodyRef = useRef(null);
   useEscapeKey(true, onClose);
+  useAutoFocus(true, bodyRef);
 
   useEffect(() => {
     if (editMode) return;
@@ -110,6 +117,33 @@ const TicketFormModal = ({
       .finally(() => setLoadingProjects(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompany]);
+
+  useEffect(() => {
+    if (editMode || !isSuperAdmin) return;
+
+    if (!selectedCompany) {
+      setModalPriorities([]);
+      return;
+    }
+
+    getTicketPriorities(selectedCompany)
+      .then((res) => {
+        const list = res.data || [];
+        setModalPriorities(list);
+        setFormData((prev) => ({
+          ...prev,
+          priority: list.some((p) => p.name === prev.priority)
+            ? prev.priority
+            : list.find((p) => p.name === "Normal")?.name ||
+              list[0]?.name ||
+              "Normal",
+        }));
+      })
+      .catch(() =>
+        toastError("Error", "Failed to load priorities for this company."),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompany, editMode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -244,6 +278,7 @@ const TicketFormModal = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
         <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-scaleIn">
           <div
+            ref={bodyRef}
             className="flex-1 overflow-y-auto px-5 py-4"
             onKeyDown={(e) => handleEnterNavigation(e, handleSave)}
           >
@@ -366,27 +401,32 @@ const TicketFormModal = ({
                   </select>
                 </div>
               )}
-              {isAdmin && priorities?.length > 0 && (
-                <div>
-                  <label className={labelClass}>Priority</label>
-                  <select
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleChange}
-                    className={`${fieldClass} cursor-pointer`}
-                  >
-                    {priorities.map((p) => (
-                      <option
-                        key={p._id}
-                        value={p.name}
-                        className="bg-white text-gray-900"
-                      >
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {isAdmin &&
+                (editMode || !isSuperAdmin ? priorities : modalPriorities)
+                  ?.length > 0 && (
+                  <div>
+                    <label className={labelClass}>Priority</label>
+                    <select
+                      name="priority"
+                      value={formData.priority}
+                      onChange={handleChange}
+                      className={`${fieldClass} cursor-pointer`}
+                    >
+                      {(editMode || !isSuperAdmin
+                        ? priorities
+                        : modalPriorities
+                      ).map((p) => (
+                        <option
+                          key={p._id}
+                          value={p.name}
+                          className="bg-white text-gray-900"
+                        >
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               <div>
                 <label className={labelClass}>Description</label>
                 <RichTextEditor

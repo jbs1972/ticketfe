@@ -61,17 +61,24 @@ const Users = () => {
 
   useEffect(() => {
     if (isSuperAdmin) {
-      if (!selectedCompanyId) {
-        setUsers([]);
-        return;
-      }
-      fetchUsers(selectedCompanyId);
+      fetchUsers(selectedCompanyId || undefined);
       return;
     }
 
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin, selectedCompanyId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(users.length / ITEMS_PER_PAGE));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [users.length, currentPage]);
 
   // Only the Super Admin may edit their own row; nobody may delete themselves.
   const canEdit = (target) => {
@@ -118,6 +125,8 @@ const Users = () => {
     currentPage * ITEMS_PER_PAGE,
   );
 
+  const showCompanyColumn = isSuperAdmin && !selectedCompanyId;
+
   const columns = [
     {
       key: "slNo",
@@ -127,8 +136,36 @@ const Users = () => {
       width: "w-20",
       render: (_, index) => (currentPage - 1) * ITEMS_PER_PAGE + index + 1,
     },
-    { key: "name", header: "Name" },
-    { key: "email", header: "Email" },
+    {
+      key: "name",
+      header: "Name",
+      truncate: true,
+      maxWidth: "160px",
+      title: (row) => row.name,
+    },
+    {
+      key: "email",
+      header: "Email",
+      truncate: true,
+      maxWidth: "220px",
+      title: (row) => row.email,
+    },
+    ...(showCompanyColumn
+      ? [
+          {
+            key: "company",
+            header: "Company",
+            truncate: true,
+            maxWidth: "140px",
+            title: (row) => row.company?.name || "",
+            render: (row) => (
+              <span className="text-xs text-gray-600">
+                {row.company?.name || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "role",
       header: "Role",
@@ -229,7 +266,7 @@ const Users = () => {
               onChange={(e) => setSelectedCompanyId(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
             >
-              <option value="">Select a company</option>
+              <option value="">All Companies</option>
               {companies.map((company) => (
                 <option key={company._id} value={company._id}>
                   {company.name}
@@ -240,7 +277,6 @@ const Users = () => {
           <Button
             onClick={() => setOpenAddUser(true)}
             leftIcon={<Plus size={16} />}
-            disabled={isSuperAdmin && !selectedCompanyId}
           >
             Add User
           </Button>
@@ -250,11 +286,7 @@ const Users = () => {
         columns={columns}
         data={currentUsers}
         loading={loading}
-        emptyMessage={
-          isSuperAdmin && !selectedCompanyId
-            ? "Select a company to view its users"
-            : "No users found"
-        }
+        emptyMessage="No users found"
       />
       <Pagination
         currentPage={currentPage}
@@ -265,10 +297,12 @@ const Users = () => {
       <AddUserModal
         open={openAddUser}
         companyId={isSuperAdmin ? selectedCompanyId : undefined}
-        onClose={() => {
-          setOpenAddUser(false);
-          isSuperAdmin ? fetchUsers(selectedCompanyId) : fetchUsers();
-        }}
+        onClose={() => setOpenAddUser(false)}
+        onSaved={() =>
+          isSuperAdmin
+            ? fetchUsers(selectedCompanyId || undefined)
+            : fetchUsers()
+        }
       />
       <EditUserModal
         open={!!editTarget}

@@ -80,6 +80,24 @@ const ColorDot = ({ color }) =>
     <span className="text-xs text-gray-400">No Color</span>
   );
 
+const CompanySelect = ({ value, onChange, companies }) => (
+  <div className="space-y-1.5">
+    <label className="block text-sm font-medium text-gray-700">Company</label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 sm:w-64"
+    >
+      <option value="">Select company...</option>
+      {companies.map((c) => (
+        <option key={c._id} value={c._id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
 const Configure = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "superadmin";
@@ -90,6 +108,8 @@ const Configure = () => {
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const companyId = isSuperAdmin ? selectedCompany : user?.company;
+  const canReorder = !!companyId;
+  const showCompanyColumn = !companyId;
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,12 +117,14 @@ const Configure = () => {
   const [savingSequence, setSavingSequence] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLOR_PRESETS[5]);
+  const [newStatusCompany, setNewStatusCompany] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [pName, setPName] = useState("");
+  const [newPriorityCompany, setNewPriorityCompany] = useState("");
   const [pSaving, setPSaving] = useState(false);
   const [pEditingId, setPEditingId] = useState(null);
   const [pEditName, setPEditName] = useState("");
@@ -121,12 +143,6 @@ const Configure = () => {
   }, [isSuperAdmin]);
 
   const fetchAll = async () => {
-    if (!companyId) {
-      setStatuses([]);
-      setPriorities([]);
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
       const [sRes, pRes] = await Promise.all([
@@ -155,13 +171,19 @@ const Configure = () => {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !companyId) return;
+    const targetCompany = companyId || newStatusCompany;
+    if (!name.trim() || !targetCompany) return;
     try {
       setSaving(true);
-      await createTicketStatus({ name: name.trim(), color, companyId });
+      await createTicketStatus({
+        name: name.trim(),
+        color,
+        companyId: targetCompany,
+      });
       toastSuccess("Status Added", `"${name.trim()}" has been added.`);
       setName("");
       setColor(COLOR_PRESETS[5]);
+      setNewStatusCompany("");
       await fetchAll();
     } catch (error) {
       toastError("Failed", getErrorMessage(error, "Could not add status."));
@@ -231,12 +253,17 @@ const Configure = () => {
 
   const handleAddPriority = async (e) => {
     e.preventDefault();
-    if (!pName.trim() || !companyId) return;
+    const targetCompany = companyId || newPriorityCompany;
+    if (!pName.trim() || !targetCompany) return;
     try {
       setPSaving(true);
-      await createTicketPriority({ name: pName.trim(), companyId });
+      await createTicketPriority({
+        name: pName.trim(),
+        companyId: targetCompany,
+      });
       toastSuccess("Priority Added", `"${pName.trim()}" has been added.`);
       setPName("");
+      setNewPriorityCompany("");
       await fetchAll();
     } catch (error) {
       toastError("Failed", getErrorMessage(error, "Could not add priority."));
@@ -317,36 +344,56 @@ const Configure = () => {
           </span>
         ),
     },
-    {
-      key: "move",
-      header: "Move",
-      headerClassName: "text-center",
-      cellClassName: "text-center",
-      width: "w-24",
-      render: (row, index) =>
-        row.isDefault ? null : (
-          <div className="flex justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => moveStatus(index, -1)}
-              disabled={index <= lockedCount}
-              className="text-gray-500 hover:text-blue-600 disabled:opacity-30"
-              title="Move up"
-            >
-              <ArrowUp size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveStatus(index, 1)}
-              disabled={index === statuses.length - 1}
-              className="text-gray-500 hover:text-blue-600 disabled:opacity-30"
-              title="Move down"
-            >
-              <ArrowDown size={14} />
-            </button>
-          </div>
-        ),
-    },
+    ...(showCompanyColumn
+      ? [
+          {
+            key: "company",
+            header: "Company",
+            truncate: true,
+            maxWidth: "140px",
+            title: (row) => row.company?.name || "",
+            render: (row) => (
+              <span className="text-xs text-gray-600">
+                {row.company?.name || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    ...(canReorder
+      ? [
+          {
+            key: "move",
+            header: "Alter Sequence",
+            headerClassName: "text-center",
+            cellClassName: "text-center",
+            width: "w-24",
+            render: (row, index) =>
+              row.isDefault ? null : (
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moveStatus(index, -1)}
+                    disabled={index <= lockedCount}
+                    className="text-gray-500 hover:text-blue-600 disabled:opacity-30"
+                    title="Move up"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveStatus(index, 1)}
+                    disabled={index === statuses.length - 1}
+                    className="text-gray-500 hover:text-blue-600 disabled:opacity-30"
+                    title="Move down"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
+              ),
+          },
+        ]
+      : []),
     {
       key: "edit",
       header: "Edit",
@@ -434,6 +481,19 @@ const Configure = () => {
           <span className="font-medium">{row.name}</span>
         ),
     },
+    ...(showCompanyColumn
+      ? [
+          {
+            key: "company",
+            header: "Company",
+            render: (row) => (
+              <span className="text-xs text-gray-600">
+                {row.company?.name || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "edit",
       header: "Edit",
@@ -518,7 +578,7 @@ const Configure = () => {
             onChange={(e) => setSelectedCompany(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
           >
-            <option value="">Select company...</option>
+            <option value="">All Companies</option>
             {companies.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
@@ -527,106 +587,100 @@ const Configure = () => {
           </select>
         )}
       </div>
-      {!companyId ? (
-        <p className="py-10 text-center text-sm text-gray-500">
-          Select a company to view its configuration.
-        </p>
-      ) : (
-        <>
-          {activeTab === "statuses" && (
-            <div className="w-full space-y-4">
-              <Table
-                columns={statusColumns}
-                data={companyId ? statuses : []}
-                loading={loading}
-                emptyMessage={
-                  companyId
-                    ? "No statuses yet."
-                    : "Select a company to view its configuration."
-                }
-              />
-              {companyId && sequenceDirty && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={saveSequence}
-                    loading={savingSequence}
-                    loadingText="Saving..."
-                  >
-                    Save Sequence
-                  </Button>
-                </div>
-              )}
-              {companyId && (
-                <form
-                  onSubmit={handleAdd}
-                  className="flex w-full flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="min-w-[200px] flex-1">
-                    <InputBox
-                      label="New Status Name"
-                      name="statusName"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. On Hold"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Color
-                    </label>
-                    <ColorSwatches value={color} onChange={setColor} />
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={saving}
-                    loadingText="Adding..."
-                  >
-                    Add
-                  </Button>
-                </form>
-              )}
+      {activeTab === "statuses" && (
+        <div className="w-full space-y-4">
+          <Table
+            columns={statusColumns}
+            data={statuses}
+            loading={loading}
+            emptyMessage="No statuses yet."
+          />
+          {companyId && sequenceDirty && (
+            <div className="flex justify-end">
+              <Button
+                onClick={saveSequence}
+                loading={savingSequence}
+                loadingText="Saving..."
+              >
+                Save Sequence
+              </Button>
             </div>
           )}
-          {activeTab === "priorities" && (
-            <div className="w-full space-y-4">
-              <Table
-                columns={priorityColumns}
-                data={companyId ? priorities : []}
-                loading={loading}
-                emptyMessage={
-                  companyId
-                    ? "No priorities yet."
-                    : "Select a company to view its configuration."
-                }
+          <form
+            onSubmit={handleAdd}
+            className="flex w-full flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+          >
+            {!companyId && (
+              <CompanySelect
+                value={newStatusCompany}
+                onChange={setNewStatusCompany}
+                companies={companies}
               />
-              {companyId && (
-                <form
-                  onSubmit={handleAddPriority}
-                  className="flex w-full flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="min-w-[200px] flex-1">
-                    <InputBox
-                      label="New Priority Name"
-                      name="priorityName"
-                      value={pName}
-                      onChange={(e) => setPName(e.target.value)}
-                      placeholder="e.g. Critical"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={pSaving}
-                    loadingText="Adding..."
-                  >
-                    Add
-                  </Button>
-                </form>
-              )}
+            )}
+            <div className="min-w-[200px] flex-1">
+              <InputBox
+                label="New Status Name"
+                name="statusName"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. On Hold"
+              />
             </div>
-          )}
-        </>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                Color
+              </label>
+              <ColorSwatches value={color} onChange={setColor} />
+            </div>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={saving}
+              loadingText="Adding..."
+            >
+              Add
+            </Button>
+          </form>
+        </div>
+      )}
+      {activeTab === "priorities" && (
+        <div className="w-full space-y-4">
+          <Table
+            columns={priorityColumns}
+            data={priorities}
+            loading={loading}
+            emptyMessage="No priorities yet."
+          />
+          <form
+            onSubmit={handleAddPriority}
+            className="flex w-full flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+          >
+            {!companyId && (
+              <CompanySelect
+                value={newPriorityCompany}
+                onChange={setNewPriorityCompany}
+                companies={companies}
+              />
+            )}
+            <div className="min-w-[200px] flex-1">
+              <InputBox
+                label="New Priority Name"
+                name="priorityName"
+                value={pName}
+                onChange={(e) => setPName(e.target.value)}
+                placeholder="e.g. Critical"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={pSaving}
+              loadingText="Adding..."
+            >
+              Add
+            </Button>
+          </form>
+        </div>
       )}
     </div>
   );

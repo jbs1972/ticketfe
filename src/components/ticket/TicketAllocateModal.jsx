@@ -30,7 +30,10 @@ const TicketAllocateModal = ({ ticket, onClose, onSaved }) => {
     getUsers(getToken(), ticket.company)
       .then((res) => {
         const allUsers = (res.data || []).filter(
-          (p) => p.isActive && String(p._id) !== String(user?._id),
+          (p) =>
+            p.isActive &&
+            p.role === "user" &&
+            String(p._id) !== String(user?._id),
         );
         const projectUsers = allUsers.filter(
           (p) =>

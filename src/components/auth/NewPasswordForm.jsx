@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { LockKeyhole, KeyRound } from "lucide-react";
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
-import { handleEnterNavigation } from "../../utilities/ticketHelpers";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const PASSWORD_RULES = {
   minLength: 6,

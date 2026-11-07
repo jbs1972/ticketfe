@@ -160,7 +160,7 @@ const RichTextEditor = ({
   return (
     <div
       ref={wrapperRef}
-      className="relative rounded-lg border border-gray-300 bg-white transition-all duration-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200"
+      className="relative overflow-hidden rounded-lg border border-gray-300 bg-white transition-all duration-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200"
     >
       <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
         <button

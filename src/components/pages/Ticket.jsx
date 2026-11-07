@@ -45,10 +45,11 @@ const Ticket = () => {
     if (selectedCompany) params.company = selectedCompany;
     if (selectedProject) params.project = selectedProject;
     setSearchParams(params, { replace: true });
+    setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompany, selectedProject]);
 
-  const ticketsEnabled = isSuperAdmin ? !!selectedCompany : true;
+  const ticketsEnabled = true;
 
   const scopeParams = {
     companyId: isSuperAdmin ? selectedCompany || undefined : undefined,
@@ -93,16 +94,11 @@ const Ticket = () => {
   const configCompanyId = isSuperAdmin ? selectedCompany : user?.company;
 
   useEffect(() => {
-    if (!configCompanyId) {
-      setStatuses([]);
-      setPriorities([]);
-      return;
-    }
     const load = async () => {
       try {
         const [sRes, pRes] = await Promise.all([
-          getTicketStatuses(configCompanyId),
-          getTicketPriorities(configCompanyId),
+          getTicketStatuses(configCompanyId || undefined),
+          getTicketPriorities(configCompanyId || undefined),
         ]);
         setStatuses(sRes.data || []);
         setPriorities(pRes.data || []);
@@ -228,11 +224,9 @@ const Ticket = () => {
   };
 
   const emptyMessage =
-    isSuperAdmin && !selectedCompany
-      ? "Select a company to view its tickets"
-      : isRegularUser && projects.length === 0
-        ? "You have not been assigned to any project yet."
-        : "No tickets found";
+    isRegularUser && projects.length === 0
+      ? "You have not been assigned to any project yet."
+      : "No tickets found";
 
   return (
     <div>
@@ -245,7 +239,7 @@ const Ticket = () => {
               onChange={(e) => setSelectedCompany(e.target.value)}
               className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
             >
-              <option value="">Select company...</option>
+              <option value="">All Companies</option>
               {companies.map((c) => (
                 <option
                   key={c._id}
@@ -304,7 +298,7 @@ const Ticket = () => {
       <SearchBar
         placeholder="Search by subject, description, code, attachment or comment..."
         showStatus={true}
-        statusOptions={statuses.map((s) => s.name)}
+        statusOptions={[...new Set(statuses.map((s) => s.name))]}
         onSearch={handleSearch}
       />
       <TicketTable
@@ -318,6 +312,8 @@ const Ticket = () => {
         onDelete={requestDeleteTicket}
         onAllocate={setAllocateTarget}
         statuses={statuses}
+        showCompanyColumn={isSuperAdmin && !selectedCompany}
+        showProjectColumn={!selectedProject}
         emptyMessage={emptyMessage}
       />
       <Pagination

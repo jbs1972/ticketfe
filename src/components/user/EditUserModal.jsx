@@ -11,6 +11,7 @@ import { ROLE_LABELS } from "../../utilities/constants";
 import Modal from "../common/Modal";
 import InputBox from "../common/InputBox";
 import Button from "../common/Button";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const EditUserModal = ({ open, user, onClose, onSaved }) => {
   const [name, setName] = useState("");
@@ -66,7 +67,11 @@ const EditUserModal = ({ open, user, onClose, onSaved }) => {
 
   return (
     <Modal open={open} onClose={onClose} title="Edit User" size="sm">
-      <form onSubmit={handleUpdate} className="space-y-4">
+      <form
+        onSubmit={handleUpdate}
+        className="space-y-4"
+        onKeyDown={handleEnterNavigation}
+      >
         <InputBox
           label="Full Name"
           name="name"

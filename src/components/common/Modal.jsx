@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { X } from "lucide-react";
-import useEscapeKey from "../../hooks/useEscapeKey";
+import { useEscapeKey, useAutoFocus } from "../../hooks/useKeyboardNavigation";
 
 const sizeClasses = {
   sm: "max-w-sm",
@@ -18,7 +19,10 @@ const Modal = ({
   showCloseButton = true,
   bodyClassName = "px-5 py-4",
 }) => {
+  const bodyRef = useRef(null);
+
   useEscapeKey(open, onClose);
+  useAutoFocus(open, bodyRef);
 
   if (!open) return null;
 
@@ -27,7 +31,6 @@ const Modal = ({
       <div
         className={`w-full ${sizeClasses[size]} overflow-hidden rounded-xl bg-white shadow-xl animate-scaleIn`}
       >
-        {/* Header */}
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
             {title ? (
@@ -47,12 +50,13 @@ const Modal = ({
           </div>
         )}
 
-        {/* Body */}
-        <div className={`max-h-[70vh] overflow-y-auto ${bodyClassName}`}>
+        <div
+          ref={bodyRef}
+          className={`max-h-[70vh] overflow-y-auto ${bodyClassName}`}
+        >
           {children}
         </div>
 
-        {/* Footer */}
         {footer && (
           <div className="border-t border-gray-200 px-5 py-3">{footer}</div>
         )}

@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Mail, Lock } from "lucide-react";
 import InputBox from "../common/InputBox";
-import Button from "../common/Button";
 import { createUser } from "../../services/user.service";
+import { getAllCompanies } from "../../services/company.service";
 import { getToken } from "../../utilities/tokenStorage";
 import { toastError, toastSuccess } from "../../utilities/toast";
 import useAuth from "../../hooks/useAuth";
 import { ROLE_LABELS } from "../../utilities/constants";
-import { handleEnterNavigation } from "../../utilities/ticketHelpers";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const initialForm = {
   name: "",
   email: "",
   password: "",
+  confirmPassword: "",
   role: "user",
 };
 
@@ -20,6 +21,7 @@ const initialErrors = {
   name: "",
   email: "",
   password: "",
+  confirmPassword: "",
   company: "",
 };
 
@@ -32,22 +34,33 @@ const PASSWORD_RULES = {
   special: /[#@$]/,
 };
 
-const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
+const AddUserForm = ({ formId, companyId, onSuccess, onLoadingChange }) => {
   const { user: currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === "superadmin";
+  const needsCompanyPicker = isSuperAdmin && !companyId;
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState(initialErrors);
-  const [loading, setLoading] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(companyId || "");
 
-  // Both Admin and Super Admin can assign Admin role
   const canAssignAdmin =
     currentUser?.role === "admin" || currentUser?.role === "superadmin";
+
+  useEffect(() => {
+    if (needsCompanyPicker) {
+      getAllCompanies()
+        .then((res) => setCompanies(res.data || []))
+        .catch(() => toastError("Load Failed", "Failed to load companies."));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsCompanyPicker]);
 
   const validate = () => {
     const validationErrors = {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
       company: "",
     };
     if (!form.name.trim()) {
@@ -77,8 +90,13 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
       validationErrors.password =
         "Password must contain at least one special character (#, @ or $).";
     }
-    if (isSuperAdmin && !companyId) {
-      validationErrors.company = "Select a company on the Users page first.";
+    if (form.confirmPassword.length === 0) {
+      validationErrors.confirmPassword = "Confirm password is required.";
+    } else if (form.confirmPassword !== password) {
+      validationErrors.confirmPassword = "Passwords do not match.";
+    }
+    if (isSuperAdmin && !selectedCompany) {
+      validationErrors.company = "Please select a company.";
     }
     setErrors(validationErrors);
     return !Object.values(validationErrors).some(Boolean);
@@ -86,14 +104,8 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (event) => {
@@ -102,11 +114,12 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
       return;
     }
     try {
-      setLoading(true);
+      onLoadingChange?.(true);
       const token = getToken();
       const payload = { ...form };
+      delete payload.confirmPassword;
       if (isSuperAdmin) {
-        payload.company = companyId;
+        payload.company = selectedCompany;
       }
       await createUser(payload, token);
       toastSuccess("User Created", "User registered successfully.");
@@ -118,47 +131,58 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
         error?.response?.data?.message || "Unable to create user.";
       const lowerMessage = message.toLowerCase();
       if (lowerMessage.includes("email")) {
-        setErrors((prev) => ({
-          ...prev,
-          email: message,
-        }));
+        setErrors((prev) => ({ ...prev, email: message }));
         return;
       }
       if (lowerMessage.includes("password")) {
-        setErrors((prev) => ({
-          ...prev,
-          password: message,
-        }));
+        setErrors((prev) => ({ ...prev, password: message }));
         return;
       }
       if (lowerMessage.includes("name")) {
-        setErrors((prev) => ({
-          ...prev,
-          name: message,
-        }));
+        setErrors((prev) => ({ ...prev, name: message }));
         return;
       }
       if (lowerMessage.includes("company")) {
-        setErrors((prev) => ({
-          ...prev,
-          company: message,
-        }));
+        setErrors((prev) => ({ ...prev, company: message }));
         return;
       }
       toastError("Failed", message);
     } finally {
-      setLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
   return (
     <form
+      id={formId}
       onSubmit={handleSubmit}
       className="space-y-4"
       onKeyDown={handleEnterNavigation}
     >
       {isSuperAdmin && errors.company && (
         <p className="text-xs text-red-600">{errors.company}</p>
+      )}
+      {needsCompanyPicker && (
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-gray-700">
+            Company
+          </label>
+          <select
+            value={selectedCompany}
+            onChange={(e) => {
+              setSelectedCompany(e.target.value);
+              setErrors((prev) => ({ ...prev, company: "" }));
+            }}
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          >
+            <option value="">Select company...</option>
+            {companies.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
       <InputBox
         label="Full Name"
@@ -192,6 +216,17 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
         error={errors.password}
         required
       />
+      <InputBox
+        label="Confirm Password"
+        name="confirmPassword"
+        type="password"
+        value={form.confirmPassword}
+        onChange={handleChange}
+        placeholder="Re-enter password"
+        leftIcon={<Lock size={16} />}
+        error={errors.confirmPassword}
+        required
+      />
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Role</label>
         <select
@@ -203,24 +238,6 @@ const AddUserForm = ({ companyId, onSuccess, onCancel }) => {
           <option value="user">{ROLE_LABELS.user}</option>
           {canAssignAdmin && <option value="admin">{ROLE_LABELS.admin}</option>}
         </select>
-      </div>
-      <div className="flex justify-end gap-2 pt-1">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          loading={loading}
-          loadingText="Creating..."
-        >
-          Create User
-        </Button>
       </div>
     </form>
   );

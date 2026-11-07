@@ -8,6 +8,7 @@ import { ROLE_LABELS, ROLE_COLORS } from "../../utilities/constants";
 import { changeOwnPassword } from "../../services/user.service";
 import { getToken } from "../../utilities/tokenStorage";
 import { toastSuccess, toastError } from "../../utilities/toast";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const PASSWORD_RULES = {
   minLength: 6,
@@ -17,6 +18,8 @@ const PASSWORD_RULES = {
   number: /\d/,
   special: /[#@$]/,
 };
+
+const PROFILE_PASSWORD_FORM_ID = "profile-password-form";
 
 const ProfileModal = ({ open, onClose }) => {
   const { user } = useAuth();
@@ -130,11 +133,30 @@ const ProfileModal = ({ open, onClose }) => {
       open={open}
       onClose={handleClose}
       size="md"
-      showCloseButton={false}
       bodyClassName="p-0"
+      footer={
+        showChangePassword ? (
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={resetPasswordForm}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form={PROFILE_PASSWORD_FORM_ID}
+              loading={loading}
+              loadingText="Updating..."
+            >
+              Update Password
+            </Button>
+          </div>
+        ) : null
+      }
     >
       <div className="overflow-hidden">
-        {/* Banner */}
         <div
           className={`flex h-20 items-center justify-center ${colors.banner}`}
         >
@@ -145,7 +167,6 @@ const ProfileModal = ({ open, onClose }) => {
           </div>
         </div>
 
-        {/* Content */}
         <div className="px-6 pb-6 pt-10">
           <h2 className="text-center text-lg font-bold text-gray-900">
             {user.name}
@@ -189,7 +210,12 @@ const ProfileModal = ({ open, onClose }) => {
                 Change Password
               </Button>
             ) : (
-              <form onSubmit={handleChangePassword} className="space-y-4">
+              <form
+                id={PROFILE_PASSWORD_FORM_ID}
+                onSubmit={handleChangePassword}
+                className="space-y-4"
+                onKeyDown={handleEnterNavigation}
+              >
                 <InputBox
                   label="Current Password"
                   name="currentPassword"
@@ -231,36 +257,8 @@ const ProfileModal = ({ open, onClose }) => {
                   error={errors.confirmPassword}
                   required
                 />
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    fullWidth
-                    onClick={resetPasswordForm}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    fullWidth
-                    loading={loading}
-                    loadingText="Updating..."
-                  >
-                    Update Password
-                  </Button>
-                </div>
               </form>
             )}
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <Button variant="primary" onClick={handleClose}>
-              Close
-            </Button>
           </div>
         </div>
       </div>

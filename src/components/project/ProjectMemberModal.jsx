@@ -19,7 +19,9 @@ const ProjectMemberModal = ({ open, project, companyId, onClose, onSaved }) => {
       try {
         setLoading(true);
         const res = await getUsers(getToken(), companyId);
-        const users = (res.data || []).filter((u) => u.isActive);
+        const users = (res.data || []).filter(
+          (u) => u.isActive && u.role === "user",
+        );
         setAllUsers(users);
 
         const assigned = users

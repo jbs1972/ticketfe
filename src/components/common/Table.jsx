@@ -46,16 +46,37 @@ const Table = ({
                   key={row[rowKey]}
                   className="transition-colors hover:bg-gray-50"
                 >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`border border-gray-200 px-3 py-2 text-gray-700 ${
-                        col.cellClassName || ""
-                      }`}
-                    >
-                      {col.render ? col.render(row, index) : row[col.key]}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const content = col.render
+                      ? col.render(row, index)
+                      : row[col.key];
+                    return (
+                      <td
+                        key={col.key}
+                        className={`border border-gray-200 px-3 py-2 text-gray-700 ${
+                          col.cellClassName || ""
+                        }`}
+                      >
+                        {col.truncate ? (
+                          <div
+                            className="truncate"
+                            style={{ maxWidth: col.maxWidth || "200px" }}
+                            title={
+                              col.title
+                                ? col.title(row)
+                                : typeof content === "string"
+                                  ? content
+                                  : undefined
+                            }
+                          >
+                            {content}
+                          </div>
+                        ) : (
+                          content
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}

@@ -9,27 +9,7 @@ import {
 } from "lucide-react";
 import Button from "../common/Button";
 import InputBox from "../common/InputBox";
-
-// Feature 6: Enter moves focus to the next logical field.
-// On the last field, focus jumps to the submit button; pressing
-// Enter there performs the default submit.
-const handleEnterNavigation = (event) => {
-  if (event.key !== "Enter") return;
-  if (event.target.tagName === "BUTTON") return;
-
-  const fields = Array.from(event.currentTarget.elements).filter(
-    (el) =>
-      !el.disabled &&
-      el.offsetParent !== null &&
-      (el.tagName !== "BUTTON" || el.type === "submit"),
-  );
-
-  const index = fields.indexOf(event.target);
-  if (index === -1 || index === fields.length - 1) return;
-
-  event.preventDefault();
-  fields[index + 1].focus();
-};
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const LoginForm = ({
   formData,

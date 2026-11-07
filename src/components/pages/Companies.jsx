@@ -13,8 +13,11 @@ import Button from "../common/Button";
 import Modal from "../common/Modal";
 import InputBox from "../common/InputBox";
 import Pagination from "../common/Pagination";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const ITEMS_PER_PAGE = 10;
+const CREATE_COMPANY_FORM_ID = "create-company-form";
+const EDIT_COMPANY_FORM_ID = "edit-company-form";
 
 const Companies = () => {
   const { user: currentUser } = useAuth();
@@ -79,7 +82,8 @@ const Companies = () => {
     setEditIsActive(company.isActive);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
     if (!editName.trim()) return;
 
     try {
@@ -199,16 +203,21 @@ const Companies = () => {
               Cancel
             </Button>
             <Button
+              type="submit"
+              form={CREATE_COMPANY_FORM_ID}
               loading={creating}
               loadingText="Creating..."
-              onClick={handleCreate}
             >
               Create
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleCreate}>
+        <form
+          id={CREATE_COMPANY_FORM_ID}
+          onSubmit={handleCreate}
+          onKeyDown={handleEnterNavigation}
+        >
           <InputBox
             label="Company Name"
             id="companyName"
@@ -231,16 +240,22 @@ const Companies = () => {
               Cancel
             </Button>
             <Button
+              type="submit"
+              form={EDIT_COMPANY_FORM_ID}
               loading={saving}
               loadingText="Saving..."
-              onClick={handleSaveEdit}
             >
               Save
             </Button>
           </div>
         }
       >
-        <div className="space-y-4">
+        <form
+          id={EDIT_COMPANY_FORM_ID}
+          onSubmit={handleSaveEdit}
+          onKeyDown={handleEnterNavigation}
+          className="space-y-4"
+        >
           <InputBox
             label="Company Name"
             id="editCompanyName"
@@ -273,7 +288,7 @@ const Companies = () => {
               this company.
             </p>
           )}
-        </div>
+        </form>
       </Modal>
     </div>
   );

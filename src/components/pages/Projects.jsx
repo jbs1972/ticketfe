@@ -17,8 +17,11 @@ import InputBox from "../common/InputBox";
 import ConfirmDialog from "../common/ConfirmDialog";
 import Pagination from "../common/Pagination";
 import ProjectMemberModal from "../project/ProjectMemberModal";
+import { handleEnterNavigation } from "../../hooks/useKeyboardNavigation";
 
 const ITEMS_PER_PAGE = 10;
+const CREATE_PROJECT_FORM_ID = "create-project-form";
+const EDIT_PROJECT_FORM_ID = "edit-project-form";
 
 const Projects = () => {
   const { user: currentUser } = useAuth();
@@ -30,6 +33,7 @@ const Projects = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
+  const [createCompany, setCreateCompany] = useState("");
   const [creating, setCreating] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [editName, setEditName] = useState("");
@@ -53,7 +57,7 @@ const Projects = () => {
     try {
       setLoading(true);
       const res = await getAllProjects(
-        isSuperAdmin ? selectedCompany : undefined,
+        isSuperAdmin ? selectedCompany || undefined : undefined,
       );
       setProjects(res.data || []);
     } catch (err) {
@@ -67,30 +71,33 @@ const Projects = () => {
   };
 
   useEffect(() => {
-    if (!isSuperAdmin || selectedCompany) {
-      loadProjects();
-    } else {
-      setProjects([]);
-      setLoading(false);
-    }
+    loadProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompany, isSuperAdmin]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCompany]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    if (isSuperAdmin && !selectedCompany) {
+    const targetCompany = isSuperAdmin
+      ? selectedCompany || createCompany
+      : undefined;
+    if (isSuperAdmin && !targetCompany) {
       toastError("Error", "Please select a company first.");
       return;
     }
     try {
       setCreating(true);
       const payload = isSuperAdmin
-        ? { name: name.trim(), company: selectedCompany }
+        ? { name: name.trim(), company: targetCompany }
         : { name: name.trim() };
       await createProject(payload);
       toastSuccess("Created", "Project created successfully.");
       setName("");
+      setCreateCompany("");
       setCreateOpen(false);
       loadProjects();
     } catch (err) {
@@ -109,7 +116,8 @@ const Projects = () => {
     setEditIsActive(project.isActive);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
     if (!editName.trim()) return;
     try {
       setSaving(true);
@@ -154,6 +162,8 @@ const Projects = () => {
     currentPage * ITEMS_PER_PAGE,
   );
 
+  const showCompanyColumn = isSuperAdmin && !selectedCompany;
+
   const columns = [
     {
       key: "slNo",
@@ -169,7 +179,29 @@ const Projects = () => {
       headerClassName: "text-center",
       cellClassName: "text-center",
     },
-    { key: "name", header: "Name" },
+    {
+      key: "name",
+      header: "Name",
+      truncate: true,
+      maxWidth: "220px",
+      title: (project) => project.name,
+    },
+    ...(showCompanyColumn
+      ? [
+          {
+            key: "company",
+            header: "Company",
+            truncate: true,
+            maxWidth: "140px",
+            title: (project) => project.company?.name || "",
+            render: (project) => (
+              <span className="text-xs text-gray-600">
+                {project.company?.name || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "status",
       header: "Status",
@@ -181,6 +213,19 @@ const Projects = () => {
         >
           {project.isActive ? "Active" : "Inactive"}
         </span>
+      ),
+    },
+    {
+      key: "memberCount",
+      header: "Members",
+      headerClassName: "text-center",
+      cellClassName: "text-center",
+      width: "w-24",
+      render: (project) => (
+        <div className="flex items-center justify-center gap-1 text-gray-500">
+          <Users size={12} />
+          {project.memberCount || 0}
+        </div>
       ),
     },
     {
@@ -241,7 +286,7 @@ const Projects = () => {
               onChange={(e) => setSelectedCompany(e.target.value)}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
             >
-              <option value="">Select company...</option>
+              <option value="">All Companies</option>
               {companies.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name}
@@ -252,7 +297,6 @@ const Projects = () => {
           <Button
             onClick={() => setCreateOpen(true)}
             leftIcon={<Plus size={16} />}
-            disabled={isSuperAdmin && !selectedCompany}
           >
             Add Project
           </Button>
@@ -262,11 +306,7 @@ const Projects = () => {
         columns={columns}
         data={currentProjects}
         loading={loading}
-        emptyMessage={
-          isSuperAdmin && !selectedCompany
-            ? "Select a company to view its projects"
-            : "No projects found"
-        }
+        emptyMessage="No projects found"
       />
       <Pagination
         currentPage={currentPage}
@@ -285,16 +325,41 @@ const Projects = () => {
               Cancel
             </Button>
             <Button
+              type="submit"
+              form={CREATE_PROJECT_FORM_ID}
               loading={creating}
               loadingText="Creating..."
-              onClick={handleCreate}
             >
               Create
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleCreate}>
+        <form
+          id={CREATE_PROJECT_FORM_ID}
+          onSubmit={handleCreate}
+          onKeyDown={handleEnterNavigation}
+          className="space-y-4"
+        >
+          {isSuperAdmin && !selectedCompany && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                Company
+              </label>
+              <select
+                value={createCompany}
+                onChange={(e) => setCreateCompany(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="">Select company...</option>
+                {companies.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <InputBox
             label="Project Name"
             id="projectName"
@@ -317,16 +382,22 @@ const Projects = () => {
               Cancel
             </Button>
             <Button
+              type="submit"
+              form={EDIT_PROJECT_FORM_ID}
               loading={saving}
               loadingText="Saving..."
-              onClick={handleSaveEdit}
             >
               Save
             </Button>
           </div>
         }
       >
-        <div className="space-y-4">
+        <form
+          id={EDIT_PROJECT_FORM_ID}
+          onSubmit={handleSaveEdit}
+          onKeyDown={handleEnterNavigation}
+          className="space-y-4"
+        >
           <InputBox
             label="Project Name"
             id="editProjectName"
@@ -358,13 +429,17 @@ const Projects = () => {
               Deactivating will freeze this project for its assigned users.
             </p>
           )}
-        </div>
+        </form>
       </Modal>
 
       <ProjectMemberModal
         open={!!allocateTarget}
         project={allocateTarget}
-        companyId={isSuperAdmin ? selectedCompany : currentUser.company}
+        companyId={
+          isSuperAdmin
+            ? allocateTarget?.company?._id || allocateTarget?.company
+            : currentUser.company
+        }
         onClose={() => setAllocateTarget(null)}
         onSaved={loadProjects}
       />

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth scrolling
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
   scrollbar-width: thin;

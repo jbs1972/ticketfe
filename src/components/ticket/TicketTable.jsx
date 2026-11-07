@@ -24,6 +24,8 @@ const TicketTable = ({
   onDelete,
   onAllocate,
   statuses = [],
+  showCompanyColumn = false,
+  showProjectColumn = false,
   emptyMessage = "No tickets found",
 }) => {
   const navigate = useNavigate();
@@ -52,15 +54,53 @@ const TicketTable = ({
         <span className="text-gray-600">{ticket.ticketCode}</span>
       ),
     },
+    ...(showCompanyColumn
+      ? [
+          {
+            key: "company",
+            header: "Company",
+            width: "w-28",
+            truncate: true,
+            maxWidth: "110px",
+            title: (ticket) => ticket.companyName || "",
+            render: (ticket) => (
+              <span className="text-xs text-gray-600">
+                {ticket.companyName || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    ...(showProjectColumn
+      ? [
+          {
+            key: "project",
+            header: "Project",
+            width: "w-28",
+            truncate: true,
+            maxWidth: "110px",
+            title: (ticket) => ticket.projectName || "",
+            render: (ticket) => (
+              <span className="text-xs text-gray-600">
+                {ticket.projectName || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "subject",
       header: "Subject",
       render: (ticket) => (
-        <div className="flex items-center gap-2">
+        <div
+          className="flex min-w-0 items-center gap-2"
+          style={{ maxWidth: "260px" }}
+        >
           <button
             type="button"
             onClick={() => navigate(`/tickets/${ticket.ticketCode}`)}
-            className="text-left font-medium text-gray-800 transition-colors hover:text-blue-700 hover:underline"
+            title={ticket.subject}
+            className="min-w-0 truncate text-left font-medium text-gray-800 transition-colors hover:text-blue-700 hover:underline"
           >
             {ticket.subject}
           </button>
@@ -94,7 +134,11 @@ const TicketTable = ({
       headerClassName: "text-center",
       cellClassName: "text-center",
       render: (ticket) => {
-        const statusConfig = statuses.find((s) => s.name === ticket.status);
+        const statusConfig = statuses.find(
+          (s) =>
+            s.name === ticket.status &&
+            String(s.company?._id || s.company) === String(ticket.company),
+        );
         const color = statusConfig?.color || "#94a3b8";
         return (
           <span className="text-xs font-medium" style={{ color }}>

@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import useEscapeKey from "../../hooks/useEscapeKey";
+import { useEscapeKey } from "../../hooks/useKeyboardNavigation";
 import Button from "../common/Button";
 import AttachmentsList from "./AttachmentsList";
 import { isRichTextHtml } from "../../utilities/ticketHelpers";
